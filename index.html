@@ -1,49 +1,675 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Repository 8</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+(function() {
+    // 이미 UI가 있으면 종료
+    if (window.cheatUIInjected) {
+        console.log("치트 UI는 이미 생성되었습니다.");
+        return;
+    }
+    window.cheatUIInjected = true;
+
+    // 1. UI 요소 생성
+    const cheatContainer = document.createElement('div');
+    cheatContainer.id = 'cheat-container';
+    cheatContainer.innerHTML = `
+        <div id="cheat-header" style="background: #2c3e50; padding: 10px; cursor: move; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #ecf0f1; font-weight: bold;">CHEAT MENU</span>
+            <div>
+                <button id="toggle-cheat-btn" style="margin-right: 5px; padding: 2px 6px; font-size: 10px;">Hide</button>
+                <button id="close-cheat-btn" style="padding: 2px 6px; font-size: 10px;">X</button>
+            </div>
+        </div>
+        <div id="cheat-controls" style="padding: 10px; background: #34495e;">
+            <label>Dmg Mult: <input type="number" id="dmg-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
+            <label>Speed Mult: <input type="number" id="speed-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
+            <label>Jump Mult: <input type="number" id="jump-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
+            <label>RoF Mult: <input type="number" id="rof-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
+            <label>Shotgun Pellets: <input type="number" id="shotgun-pellets" value="10" step="1" min="1" style="width: 50px;"></label><br><br>
+            <label>Enemy Count: <input type="number" id="enemy-count" value="1" step="1" min="1" style="width: 50px;"></label><br><br>
+            <label><input type="checkbox" id="inf-hp"> Inf HP</label><br><br>
+            <label><input type="checkbox" id="inf-ammo"> Inf Ammo</label><br><br> <!-- Modified -->
+            <label><input type="checkbox" id="god-mode"> God Mode</label><br><br>
+            <label><input type="checkbox" id="no-recoil"> No Recoil</label><br><br>
+            <label><input type="checkbox" id="auto-fire"> Auto Fire</label><br><br>
+            <button id="reset-cheats-btn" style="width: 100%;">Reset Cheats</button>
+        </div>
+    `;
+    cheatContainer.style.cssText = `
+        position: fixed; top: 20px; right: 20px; width: 200px; z-index: 10000;
+        background: #2c3e50; border: 1px solid #7f8c8d; border-radius: 4px; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    `;
+
+    document.body.appendChild(cheatContainer);
+
+    // 2. UI 요소 참조
+    const header = document.getElementById('cheat-header');
+    const controls = document.getElementById('cheat-controls');
+    const toggleBtn = document.getElementById('toggle-cheat-btn');
+    const closeBtn = document.getElementById('close-cheat-btn');
+    const dmgInput = document.getElementById('dmg-mult');
+    const speedInput = document.getElementById('speed-mult');
+    const jumpInput = document.getElementById('jump-mult');
+    const rofInput = document.getElementById('rof-mult');
+    const shotgunPelletsInput = document.getElementById('shotgun-pellets');
+    const enemyCountInput = document.getElementById('enemy-count');
+    const infHpCheckbox = document.getElementById('inf-hp');
+    const infAmmoCheckbox = document.getElementById('inf-ammo'); // Modified
+    const godModeCheckbox = document.getElementById('god-mode');
+    const noRecoilCheckbox = document.getElementById('no-recoil');
+    const autoFireCheckbox = document.getElementById('auto-fire');
+    const resetBtn = document.getElementById('reset-cheats-btn');
+
+    // 3. UI 이벤트 리스너
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+
+    header.addEventListener("mousedown", dragStart);
+    document.addEventListener("mouseup", dragEnd);
+    document.addEventListener("mousemove", drag);
+
+    function dragStart(e) {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+
+        if (e.target === header) {
+            isDragging = true;
         }
-        .container {
-            text-align: center;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    }
+
+    function dragEnd() {
+        initialX = currentX;
+        initialY = currentY;
+
+        isDragging = false;
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+
+            xOffset = currentX;
+            yOffset = currentY;
+
+            setTranslate(currentX, currentY, cheatContainer);
         }
-        h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        if (controls.style.display === 'none') {
+            controls.style.display = 'block';
+            toggleBtn.textContent = 'Hide';
+        } else {
+            controls.style.display = 'none';
+            toggleBtn.textContent = 'Show';
         }
-        p {
-            font-size: 1.2em;
-            margin: 10px 0;
+    });
+
+    closeBtn.addEventListener('click', () => {
+        cheatContainer.remove();
+        // 훅 제거 (옵션)
+        if (window.originalUpdatePlayer) {
+            window.updatePlayer = window.originalUpdatePlayer;
         }
-        .emoji {
-            font-size: 4em;
-            margin: 20px 0;
+        if (window.originalAttemptFire) {
+            window.attemptFire = window.originalAttemptFire;
         }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="emoji">🚀</div>
-        <h1>Repository 8</h1>
-        <p>간단한 HTML 페이지입니다!</p>
-        <p>Created on December 11, 2025</p>
-    </div>
-</body>
-</html>
+        if (window.originalEnemyFire) {
+            window.enemyFire = window.originalEnemyFire;
+        }
+        if (window.originalFire) {
+            window.fire = window.originalFire;
+        }
+        if (window.originalResetMission) {
+            window.resetMission = window.originalResetMission;
+        }
+    });
+
+    resetBtn.addEventListener('click', () => {
+        dmgInput.value = 1;
+        speedInput.value = 1;
+        jumpInput.value = 1;
+        rofInput.value = 1;
+        shotgunPelletsInput.value = 10;
+        enemyCountInput.value = 1;
+        infHpCheckbox.checked = false;
+        infAmmoCheckbox.checked = false; // Modified
+        godModeCheckbox.checked = false;
+        noRecoilCheckbox.checked = false;
+        autoFireCheckbox.checked = false;
+    });
+
+    // 4. 게임 로직 훅 (Hook) 함수
+    // 원본 함수 백업
+    if (!window.originalUpdatePlayer) window.originalUpdatePlayer = window.updatePlayer;
+    if (!window.originalAttemptFire) window.originalAttemptFire = window.attemptFire;
+    if (!window.originalEnemyFire) window.originalEnemyFire = window.enemyFire;
+    if (!window.originalFire) window.originalFire = window.fire;
+    if (!window.originalResetMission) window.originalResetMission = window.resetMission;
+
+    // resetMission 훅: 적 수 조절
+    window.resetMission = function() {
+        // 원래 로직 시작 부분 (플레이어 상태 리셋 등)은 그대로
+        player.hp = player.maxHp;
+        player.dead = false;
+        player.dying = false;
+        player.pos.set(0, 2, 100);
+        player.vel.set(0,0,0);
+        player.rot.set(0,0,0,'YXZ');
+        camera.rotation.set(0,0,0);
+        document.getElementById('hp-val').innerText = player.hp;
+
+        // [수정] 적 상태 리셋 및 적 생성: UI 값 가져오기
+        const enemyCount = parseInt(enemyCountInput.value) || 1;
+        // 기존 적들 제거 (이전 게임에서 남은 적이 있을 수 있음)
+        if (window.allEnemies) {
+            window.allEnemies.forEach(e => {
+                if (e.mesh) scene.remove(e.mesh);
+            });
+        }
+        window.allEnemies = [];
+
+        // 새로운 적 생성
+        for (let i = 0; i < enemyCount; i++) {
+            const newEnemy = JSON.parse(JSON.stringify(enemy)); // 기본 enemy 객체 복사
+            newEnemy.mesh = null;
+            newEnemy.hp = 200; // HP 초기화
+            newEnemy.dead = false;
+            newEnemy.dying = false;
+            newEnemy.state = 'SEARCH';
+            newEnemy.vel = new THREE.Vector3();
+            newEnemy.wIdx = 0; // 임시 초기화
+            newEnemy.ammo = 30; // 임시 초기화
+            newEnemy.nextShot = 0;
+            newEnemy.reloadEnd = 0;
+            newEnemy.swapEnd = 0;
+            newEnemy.targetPos = new THREE.Vector3();
+
+            // 적 스폰 위치를 약간 랜덤하게 설정 (기존 enemy 스폰 위치 주변)
+            const spawnOffset = new THREE.Vector3((Math.random() - 0.5) * 20, 0, (Math.random() - 0.5) * 20);
+            spawnEnemy(newEnemy, spawnOffset);
+            window.allEnemies.push(newEnemy);
+        }
+
+        // 나머지 원래 로직 (투사체, 파티클, 데미지 레이블, 제트 등 제거)
+        projectiles.forEach(p => scene.remove(p.mesh));
+        projectiles = [];
+        particles.forEach(p => scene.remove(p.mesh));
+        particles = [];
+        damageLabels.forEach(d => d.el.remove());
+        damageLabels = [];
+        jets.forEach(j => scene.remove(j.mesh));
+        jets = [];
+
+        // [수정] 무한 탄약: 초기화 시에도 무한으로 설정
+        WEAPONS.forEach(w => {
+            w.ammo = infAmmoCheckbox.checked ? w.max : w.max; // 체크 상태에 따라 초기화
+        });
+        setWeapon(0);
+        isGameActive = true;
+    };
+
+    // updatePlayer 훅 (속도, 점프, 체력, 탄약, 반동, 강제 연사)
+    window.updatePlayer = function(dt, time) {
+        // UI 값 가져오기
+        const speedMult = parseFloat(speedInput.value) || 1;
+        const jumpMult = parseFloat(jumpInput.value) || 1;
+
+        // 원래 로직 시작 부분 (camera.quaternion, input 처리 등)은 그대로
+        if(player.dying) {
+            camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.5, dt * 2);
+            camera.rotation.z = THREE.MathUtils.lerp(camera.rotation.z, 0.8, dt * 2);
+            camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, -0.2, dt * 2);
+            return;
+        }
+        camera.quaternion.setFromEuler(player.rot);
+        const w = WEAPONS[curWep];
+        const isAim = input.aim && !isReloading;
+        const lockUI = document.getElementById('lock-target');
+        const firstAliveEnemy = window.allEnemies ? window.allEnemies.find(e => !e.dead) : enemy;
+        if(w.isHoming && firstAliveEnemy && !firstAliveEnemy.dead) {
+            const ePos = firstAliveEnemy.mesh.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+            ePos.project(camera);
+            if(ePos.x > -1 && ePos.x < 1 && ePos.y > -1 && ePos.y < 1 && ePos.z < 1) {
+                const x = (ePos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-ePos.y * 0.5 + 0.5) * window.innerHeight;
+                lockUI.style.display = 'block';
+                lockUI.style.left = x + 'px'; lockUI.style.top = y + 'px';
+            } else lockUI.style.display = 'none';
+        } else lockUI.style.display = 'none';
+
+        // [수정] 모바일 자동 발사 로직: UI 토글을 우선시함
+        let autoLocked = false;
+        if(CFG.mode === 'mob' && !w.isHoming && !w.isGL && !w.isAirstrike && !isReloading) {
+            // 치트 토글이 켜져있으면 항상 자동 발사
+            if (autoFireCheckbox.checked) {
+                input.fire = true;
+                triggerReleased = true;
+            } else {
+                // 원래 로직 (수동 버튼 상태 유지)
+                input.fire = input.manual;
+                if (firstAliveEnemy && firstAliveEnemy.mesh) {
+                    const ray = new THREE.Raycaster(camera.position, camera.getWorldDirection(new THREE.Vector3()));
+                    const hits = ray.intersectObjects([...walls, firstAliveEnemy.mesh], true);
+                    if(hits.length > 0 && hits[0].object.parent === firstAliveEnemy.mesh && !firstAliveEnemy.dead) {
+                        autoLocked = true;
+                        input.fire = true;
+                        triggerReleased = true;
+                    }
+                }
+            }
+        }
+        // PC 모드에서도 치트 토글이 켜지면 자동 발사
+        if (CFG.mode === 'pc' && autoFireCheckbox.checked && !w.isHoming && !w.isGL && !w.isAirstrike && !isReloading) {
+             input.fire = true;
+             triggerReleased = true;
+        }
+
+        const ch = document.getElementById('crosshair');
+        if(autoLocked) ch.classList.add('locked'); else ch.classList.remove('locked');
+        ch.style.opacity = '1';
+        const targetPos = isAim ? new THREE.Vector3(w.aimPos.x, w.aimPos.y, w.aimPos.z) : new THREE.Vector3(w.hipPos.x, w.hipPos.y, w.hipPos.z);
+        const tFov = isAim ? w.zoom : 75;
+        if(w.scope && isAim) { document.getElementById('scope-ui').style.display='block'; gunMesh.visible=false; }
+        else { document.getElementById('scope-ui').style.display='none'; gunMesh.visible=true; }
+        camera.fov += (tFov - camera.fov) * dt * 10;
+        camera.updateProjectionMatrix();
+        const speed = Math.sqrt(player.vel.x**2 + player.vel.z**2);
+        if(speed > 1 && !isAim) {
+            targetPos.x += Math.cos(time*8) * 0.02;
+            targetPos.y += Math.sin(time*16) * 0.02;
+        }
+
+        // [수정] 반동 제거: recoilOffset가 0이 되도록 강제
+        recoilOffset = THREE.MathUtils.lerp(recoilOffset, 0, dt * 10);
+        if (noRecoilCheckbox.checked) {
+            recoilOffset = 0;
+        }
+        // recoilOffset 적용은 원래 로직과 동일
+        targetPos.z += recoilOffset; targetPos.y += recoilOffset * 0.2;
+        gunMesh.position.lerp(targetPos, dt*15);
+
+        // [수정] 속도 배수: 원래 로직에서 dir 벡터를 계산한 후, vel에 할당하기 전에 적용
+        const fwd = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion); fwd.y=0; fwd.normalize();
+        const rgt = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion); rgt.y=0; rgt.normalize();
+        const dir = new THREE.Vector3();
+        if(input.f) dir.add(fwd.multiplyScalar(input.f));
+        if(input.b) dir.add(fwd.multiplyScalar(-input.b));
+        if(input.l) dir.add(rgt.multiplyScalar(-input.l));
+        if(input.r) dir.add(rgt.multiplyScalar(input.r));
+        player.vel.x = dir.x * (15 * speedMult); // 속도 배수 적용
+        player.vel.z = dir.z * (15 * speedMult); // 속도 배수 적용
+
+        // [수정] 점프 배수: 원래 로직에서 player.vel.y = 12; 부분에 배수 적용
+        player.vel.y -= 40 * dt;
+        if(input.jump && player.canJump) {
+            player.vel.y = 12 * jumpMult; // 점프 배수 적용
+            player.canJump=false;
+        }
+        // 나머지 물리 로직 (벽 충돌, 중력 등)은 그대로
+        const nx = player.pos.x + player.vel.x*dt;
+        if(!checkWall(new THREE.Vector3(nx,2,player.pos.z))) player.pos.x = nx;
+        const nz = player.pos.z + player.vel.z*dt;
+        if(!checkWall(new THREE.Vector3(player.pos.x,2,nz))) player.pos.z = nz;
+        player.pos.y += player.vel.y*dt;
+        if(player.pos.y<2) { player.pos.y=2; player.vel.y=0; player.canJump=true; }
+        camera.position.copy(player.pos);
+
+        // [수정] 발사 로직: input.fire가 true일 때만 attemptFire 호출
+        if(input.fire) attemptFire();
+
+        // Inf HP (updatePlayer 끝에서 처리)
+        if (infHpCheckbox.checked) {
+            player.hp = player.maxHp;
+            document.getElementById('hp-val').innerText = player.hp;
+        }
+
+        // [수정] Inf Ammo (updatePlayer 끝에서 처리 - UI 업데이트만)
+        if (infAmmoCheckbox.checked) {
+            // 탄약 UI 업데이트
+            updateAmmo();
+        }
+    };
+
+
+    // [수정] RoF (Rate of Fire) 훅: 원래 로직에서 w.rate를 사용하는 부분에 배수 적용 + 무한 탄약
+    window.attemptFire = function() {
+        const w = WEAPONS[curWep];
+        const now = performance.now();
+        // [수정] 세미오토 체크는 원래 로직에서 그대로 (triggerReleased 사용)
+        if(w.type === 'semi' && !triggerReleased) return;
+        if(isReloading) return;
+        // [수정] rate에 배수 적용
+        const rofMult = parseFloat(rofInput.value) || 1;
+        if(now - lastFire < (60000/(w.rate * rofMult))) return; // rate에 배수 적용
+        // [수정] 무한 탄약 체크: 탄약이 0이어도 발사 가능
+        if(w.ammo <= 0) {
+            if (infAmmoCheckbox.checked) {
+                // 무한 탄약이면, 발사 직전에 탄약을 채워줌 (UI와 게임 로직 모두 반영)
+                w.ammo = w.max;
+                updateAmmo(); // UI 갱신
+            } else {
+                reload(); // 무한 탄약이 아니면 원래 로직대로 리로드
+                return;
+            }
+        }
+        fire(w);
+        lastFire = now;
+        if(w.type === 'semi') triggerReleased = false;
+    };
+
+    // God Mode (적의 공격을 받지 않음) - 첫 번째 적만 체크 (간소화)
+    window.enemyFire = function(w, dist) {
+        if (godModeCheckbox.checked) {
+            return; // God Mode가 켜져있으면 공격 처리 안 함
+        }
+        // 원래 로직: 적이 플레이어를 공격
+        if(player.dying) return;
+        if(w.isGL) {
+            const dir = player.pos.clone().sub(enemy.mesh.position).normalize();
+            let inaccuracy = 0.05 + (dist < 30 ? 0.2 : 0);
+            dir.x += (Math.random() - 0.5) * inaccuracy;
+            dir.y += 0.1;
+            dir.z += (Math.random() - 0.5) * inaccuracy;
+            spawnGrenade(enemy.mesh.position.clone().add(new THREE.Vector3(0,1.5,0)), dir.normalize(), false, w);
+            return;
+        }
+        const spread = w.spread * 1.5;
+        const dir = player.pos.clone().sub(enemy.mesh.position).normalize();
+        dir.x += (Math.random()-0.5)*spread; dir.y += (Math.random()-0.5)*spread; dir.z += (Math.random()-0.5)*spread;
+        const start = enemy.mesh.position.clone().add(new THREE.Vector3(0,1.5,0));
+        let end = start.clone().add(dir.normalize().multiplyScalar(100));
+        const ray = new THREE.Raycaster(start, dir.normalize());
+        const hits = ray.intersectObjects(walls);
+        if(hits.length>0) end = hits[0].point;
+        line(start, end, 0xff5500);
+        const distP = start.distanceTo(player.pos);
+        const distW = hits.length>0 ? hits[0].distance : 9999;
+        if(distP < distW) {
+            const lineRay = new THREE.Line3(start, end);
+            const closest = new THREE.Vector3();
+            const center = player.pos.clone().add(new THREE.Vector3(0,1.2,0));
+            lineRay.closestPointToPoint(center, true, closest);
+            if(closest.distanceTo(center) < 0.9) {
+                player.hp -= w.dmg;
+                document.getElementById('hp-val').innerText = Math.max(0, Math.floor(player.hp));
+                const s = document.getElementById('dmg-screen'); s.style.opacity=1; setTimeout(()=>s.style.opacity=0, 150);
+                if(player.hp<=0 && !player.dead && !player.dying) {
+                    player.dying = true; setTimeout(() => { player.dead = true; endGame(false); }, 2000);
+                }
+            }
+        }
+    };
+
+    // [수정] Fire 함수 훅: 데미지, 반동, 샷건 탄환 수, 무한 탄약
+    window.fire = function(w) {
+        // 기존 데미지 저장
+        const originalDmg = w.dmg;
+        // 배율 적용
+        const dmgMult = parseFloat(dmgInput.value) || 1;
+        w.dmg = originalDmg * dmgMult;
+
+        // 원래 로직 실행
+        camera.updateMatrixWorld();
+        let startPos = new THREE.Vector3();
+        gunMuzzleMarker.getWorldPosition(startPos);
+        const camPos = camera.position.clone();
+        const distToMuzzle = camPos.distanceTo(startPos);
+        const dirToMuzzle = startPos.clone().sub(camPos).normalize();
+        const checkRay = new THREE.Raycaster(camPos, dirToMuzzle, 0, distToMuzzle);
+        const obstructions = checkRay.intersectObjects(walls);
+        if(obstructions.length > 0) {
+            fx(obstructions[0].point, 0xaaaaaa);
+            w.dmg = originalDmg; // 복원 후 종료
+            return;
+        }
+
+        // [수정] 무한 탄약 체크: 발사 시 탄약 소모를 무시
+        if (!infAmmoCheckbox.checked) {
+            w.ammo--; // 무한 탄약이 아닐 때만 탄약 감소
+        }
+        // 무한 탄약이면, UI만 업데이트 (ammo는 그대로)
+        updateAmmo();
+
+        // [수정] 반동 적용: No Recoil 토글 체크
+        if (!noRecoilCheckbox.checked) {
+            player.rot.x += w.recoil;
+        }
+        if(w.isAirstrike) {
+            callAirstrike();
+            w.dmg = originalDmg; // 복원
+            return;
+        }
+        // [수정] 반동 적용: No Recoil 토글 체크
+        if (!noRecoilCheckbox.checked) {
+            recoilOffset = 0.15;
+        }
+        let fireDir = new THREE.Vector3();
+        if(input.aim) {
+            fireDir = camera.getWorldDirection(new THREE.Vector3());
+        } else {
+            const targetPoint = camera.position.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(50));
+            fireDir = targetPoint.sub(startPos).normalize();
+        }
+        if(w.isGL) {
+            fireDir.y += 0.05;
+            spawnGrenade(startPos, fireDir, true, w);
+        }
+        else if(w.isHoming) {
+            spawnMissile(startPos, fireDir, true, w);
+        }
+        else {
+            // [수정] 샷건 탄환 수: UI 값 가져오기
+            const pellets = curWep === 3 ? (parseInt(shotgunPelletsInput.value) || 10) : (w.pellets || 1);
+            for(let i=0; i<pellets; i++) {
+                const spread = input.aim ? 0.001 : w.spread;
+                const dev = new THREE.Vector3((Math.random()-0.5)*spread, (Math.random()-0.5)*spread, (Math.random()-0.5)*spread);
+                const shotDir = fireDir.clone().add(dev).normalize();
+                const ray = new THREE.Raycaster(startPos, shotDir);
+                const hits = ray.intersectObjects([...walls, enemy.mesh], true);
+                let end = startPos.clone().add(shotDir.multiplyScalar(200));
+                if(hits.length>0) {
+                    end = hits[0].point;
+                    const o = hits[0].object;
+                    // [수정] 첫 번째 살아있는 적만 타겟팅 (간소화)
+                    if(firstAliveEnemy && firstAliveEnemy.mesh && (o===firstAliveEnemy.mesh || o.parent===firstAliveEnemy.mesh) && !firstAliveEnemy.dying) {
+                        firstAliveEnemy.hp -= w.dmg; // 여기서 w.dmg는 이미 배수 적용됨
+                        spawnDamageText(end, w.dmg, false); // 여기서 w.dmg는 이미 배수 적용됨
+                        fx(end, 0xff0000);
+                        if(firstAliveEnemy.hp<=0 && !firstAliveEnemy.dead) {
+                            firstAliveEnemy.dying = true;
+                            setTimeout(()=>{
+                                firstAliveEnemy.dead = true;
+                                scene.remove(firstAliveEnemy.mesh);
+                                // [수정] 모든 적이 죽었는지 확인하여 승리 여부 결정
+                                const allDead = window.allEnemies.every(e => e.dead);
+                                if (allDead) {
+                                    endGame(true);
+                                }
+                            }, 2000);
+                        }
+                    } else fx(end, 0xffff00);
+                }
+                line(startPos, end, 0xffaa00);
+            }
+        }
+
+        // 복원
+        w.dmg = originalDmg;
+    };
+
+    // [수정] spawnEnemy 함수를 새 enemy 객체와 offset으로 확장
+    window.spawnEnemy = function(enemyObj, offset) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({color:0xff3333, roughness: 0.8});
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,1.8), mat);
+        body.castShadow=true; body.receiveShadow=true;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.4), mat);
+        head.position.y=1.2; head.castShadow=true;
+        let enemyWepIdx = 0;
+        const validStarts = [0, 2, 3];
+        enemyWepIdx = validStarts[Math.floor(Math.random() * validStarts.length)];
+        const enemyGunMesh = genGun(enemyWepIdx);
+        enemyGunMesh.position.set(0.3, 0.2, 0.4);
+        enemyGunMesh.scale.set(0.8,0.8,0.8);
+        g.add(body, head, enemyGunMesh);
+        // [수정] 스폰 위치에 offset 적용
+        const spawnZ = -250 + (Math.random() - 0.5) * 50;
+        g.position.set((Math.random()-0.5)*20, 2, spawnZ).add(offset || new THREE.Vector3());
+        enemyObj.mesh = g;
+        enemyObj.wIdx = enemyWepIdx;
+        enemyObj.ammo = WEAPONS[enemyWepIdx].max;
+        pickRandomDest(enemyObj);
+        scene.add(g);
+    };
+
+    // [수정] pickRandomDest 함수를 확장
+    window.pickRandomDest = function(enemyObj) {
+        enemyObj.targetPos.set((Math.random()-0.5)*300, 2, (Math.random()-0.5)*300);
+    };
+
+    // [수정] updateEnemy 함수를 확장 (전역 enemy 변수 대신 allEnemies 사용)
+    window.updateEnemy = function(dt, time) {
+        if (!window.allEnemies) return; // 적 목록이 없으면 종료
+        window.allEnemies.forEach(e => {
+            if(e.dead || !e.mesh) return;
+            if(e.dying) {
+                e.mesh.rotation.x = THREE.MathUtils.lerp(e.mesh.rotation.x, -Math.PI/2, dt * 3);
+                e.mesh.position.y = THREE.MathUtils.lerp(e.mesh.position.y, 0.5, dt * 3);
+                return;
+            }
+            e.vel.y -= 30 * dt;
+            const nx = e.mesh.position.x + e.vel.x * dt;
+            if(!checkWall(new THREE.Vector3(nx, 2, e.mesh.position.z))) e.mesh.position.x = nx;
+            const nz = e.mesh.position.z + e.vel.z * dt;
+            if(!checkWall(new THREE.Vector3(e.mesh.position.x, 2, nz))) e.mesh.position.z = nz;
+            e.mesh.position.y += e.vel.y*dt;
+            if(e.mesh.position.y<2) { e.mesh.position.y=2; e.vel.y=0; }
+            const dist = e.mesh.position.distanceTo(player.pos);
+            const dir = player.pos.clone().sub(e.mesh.position).normalize();
+            const ray = new THREE.Raycaster(e.mesh.position.clone().add(new THREE.Vector3(0,1.5,0)), dir);
+            const hits = ray.intersectObjects(walls);
+            const canSee = (hits.length===0 || hits[0].distance > dist) && !player.dying;
+            if(time > e.swapEnd) {
+                e.swapEnd = time + 2500;
+                let choices = [];
+                if(dist < 20) choices = [1, 1, 2, 2, 3, 3, 0];
+                else if(dist < 50) choices = [0, 0, 0, 2, 2, 1];
+                else choices = [0, 0, 0, 0, 2];
+                const nextW = choices[Math.floor(Math.random() * choices.length)];
+                if(e.wIdx !== nextW) {
+                    e.wIdx = nextW;
+                    // 기존 무기 제거
+                    const oldGunMesh = e.mesh.children.find(child => child !== e.mesh.children[0] && child !== e.mesh.children[1]); // body, head 제외
+                    if (oldGunMesh) e.mesh.remove(oldGunMesh);
+                    // 새 무기 생성 및 추가
+                    const newEnemyGunMesh = genGun(e.wIdx);
+                    newEnemyGunMesh.position.set(0.3, 0.2, 0.4);
+                    newEnemyGunMesh.scale.set(0.8,0.8,0.8);
+                    e.mesh.add(newEnemyGunMesh);
+                    // [수정] 무한 탄약 적용: 적도 무한 탄약
+                    e.ammo = WEAPONS[e.wIdx].max;
+                }
+            }
+            if(canSee) {
+                e.state = 'COMBAT';
+                e.mesh.lookAt(player.pos.x, e.mesh.position.y, player.pos.z);
+                let moveDir = new THREE.Vector3();
+                if(dist > 35) moveDir = dir;
+                else if(dist < 8) moveDir = dir.clone().negate();
+                const side = new THREE.Vector3(0,1,0).cross(dir).normalize();
+                const strafe = Math.sin(time/400);
+                moveDir.add(side.multiplyScalar(strafe * 0.8)).normalize();
+                e.vel.x = moveDir.x * 12; e.vel.z = moveDir.z * 12;
+                const w = WEAPONS[e.wIdx];
+                // [수정] 무한 탄약 적용: 적도 무한 탄약
+                if(e.ammo > 0 || infAmmoCheckbox.checked) {
+                    if(time > e.nextShot) {
+                        e.nextShot = time + (60000/w.rate);
+                        // [수정] 무한 탄약 적용: 적도 무한 탄약
+                        if (!infAmmoCheckbox.checked) {
+                            e.ammo--;
+                        }
+                        // 적 공격 함수 호출 시, 공격하는 적 객체를 넘김
+                        enemyFireForSpecificEnemy(w, dist, e);
+                    }
+                } else {
+                    if(time > e.reloadEnd) { if(e.reloadEnd === 0) e.reloadEnd = time + 2000; }
+                    else if(time > e.reloadEnd - 50) { e.ammo = w.max; e.reloadEnd = 0; }
+                }
+            } else {
+                e.state = 'SEARCH';
+                if(e.mesh.position.distanceTo(e.targetPos) < 2) pickRandomDest(e);
+                const moveDir = e.targetPos.clone().sub(e.mesh.position).normalize();
+                e.mesh.lookAt(e.targetPos.x, e.mesh.position.y, e.targetPos.z);
+                const frontRay = new THREE.Raycaster(e.mesh.position, moveDir, 0, 3);
+                if(frontRay.intersectObjects(walls).length > 0) {
+                    if(Math.random()>0.5 && e.mesh.position.y<2.1) e.vel.y = 10;
+                    else pickRandomDest(e);
+                }
+                e.vel.x = moveDir.x * 8; e.vel.z = moveDir.z * 8;
+            }
+        });
+    };
+
+    // [수정] 적 공격 함수를 확장 (특정 적 객체에 대해 공격)
+    window.enemyFireForSpecificEnemy = function(w, dist, enemyObj) {
+        if(player.dying) return;
+        if(w.isGL) {
+            const dir = player.pos.clone().sub(enemyObj.mesh.position).normalize();
+            let inaccuracy = 0.05 + (dist < 30 ? 0.2 : 0);
+            dir.x += (Math.random() - 0.5) * inaccuracy;
+            dir.y += 0.1;
+            dir.z += (Math.random() - 0.5) * inaccuracy;
+            spawnGrenade(enemyObj.mesh.position.clone().add(new THREE.Vector3(0,1.5,0)), dir.normalize(), false, w);
+            return;
+        }
+        const spread = w.spread * 1.5;
+        const dir = player.pos.clone().sub(enemyObj.mesh.position).normalize();
+        dir.x += (Math.random()-0.5)*spread; dir.y += (Math.random()-0.5)*spread; dir.z += (Math.random()-0.5)*spread;
+        const start = enemyObj.mesh.position.clone().add(new THREE.Vector3(0,1.5,0));
+        let end = start.clone().add(dir.normalize().multiplyScalar(100));
+        const ray = new THREE.Raycaster(start, dir.normalize());
+        const hits = ray.intersectObjects(walls);
+        if(hits.length>0) end = hits[0].point;
+        line(start, end, 0xff5500);
+        const distP = start.distanceTo(player.pos);
+        const distW = hits.length>0 ? hits[0].distance : 9999;
+        if(distP < distW) {
+            const lineRay = new THREE.Line3(start, end);
+            const closest = new THREE.Vector3();
+            const center = player.pos.clone().add(new THREE.Vector3(0,1.2,0));
+            lineRay.closestPointToPoint(center, true, closest);
+            if(closest.distanceTo(center) < 0.9) {
+                player.hp -= w.dmg;
+                document.getElementById('hp-val').innerText = Math.max(0, Math.floor(player.hp));
+                const s = document.getElementById('dmg-screen'); s.style.opacity=1; setTimeout(()=>s.style.opacity=0, 150);
+                if(player.hp<=0 && !player.dead && !player.dying) {
+                    player.dying = true; setTimeout(() => { player.dead = true; endGame(false); }, 2000);
+                }
+            }
+        }
+    };
+
+    // [수정] animate 함수를 확장 (updateEnemy 호출 수정)
+    window.animate = function() {
+        requestAnimationFrame(animate);
+        if(!isGameActive) return;
+        const dt = Math.min(clock.getDelta(), 0.1);
+        const time = performance.now();
+        updateEffects(dt);
+        updatePlayer(dt, time/1000);
+        updateEnemy(dt, time);
+        renderer.render(scene, camera);
+    };
+
+    console.log("수정된 치트 UI가 성공적으로 생성되었습니다! (속도, 점프, 연사, 데미지, 체력, 탄약, 무적, 반동 제거, 강제 연사, 샷건 탄환 배수, 적 수 포함, 무한 총알 개선)");
+})();
