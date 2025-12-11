@@ -1,675 +1,1313 @@
-(function() {
-    // 이미 UI가 있으면 종료
-    if (window.cheatUIInjected) {
-        console.log("치트 UI는 이미 생성되었습니다.");
-        return;
-    }
-    window.cheatUIInjected = true;
 
-    // 1. UI 요소 생성
-    const cheatContainer = document.createElement('div');
-    cheatContainer.id = 'cheat-container';
-    cheatContainer.innerHTML = `
-        <div id="cheat-header" style="background: #2c3e50; padding: 10px; cursor: move; display: flex; justify-content: space-between; align-items: center;">
-            <span style="color: #ecf0f1; font-weight: bold;">CHEAT MENU</span>
-            <div>
-                <button id="toggle-cheat-btn" style="margin-right: 5px; padding: 2px 6px; font-size: 10px;">Hide</button>
-                <button id="close-cheat-btn" style="padding: 2px 6px; font-size: 10px;">X</button>
-            </div>
-        </div>
-        <div id="cheat-controls" style="padding: 10px; background: #34495e;">
-            <label>Dmg Mult: <input type="number" id="dmg-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
-            <label>Speed Mult: <input type="number" id="speed-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
-            <label>Jump Mult: <input type="number" id="jump-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
-            <label>RoF Mult: <input type="number" id="rof-mult" value="1" step="0.1" min="0.1" style="width: 50px;"></label><br><br>
-            <label>Shotgun Pellets: <input type="number" id="shotgun-pellets" value="10" step="1" min="1" style="width: 50px;"></label><br><br>
-            <label>Enemy Count: <input type="number" id="enemy-count" value="1" step="1" min="1" style="width: 50px;"></label><br><br>
-            <label><input type="checkbox" id="inf-hp"> Inf HP</label><br><br>
-            <label><input type="checkbox" id="inf-ammo"> Inf Ammo</label><br><br> <!-- Modified -->
-            <label><input type="checkbox" id="god-mode"> God Mode</label><br><br>
-            <label><input type="checkbox" id="no-recoil"> No Recoil</label><br><br>
-            <label><input type="checkbox" id="auto-fire"> Auto Fire</label><br><br>
-            <button id="reset-cheats-btn" style="width: 100%;">Reset Cheats</button>
-        </div>
-    `;
-    cheatContainer.style.cssText = `
-        position: fixed; top: 20px; right: 20px; width: 200px; z-index: 10000;
-        background: #2c3e50; border: 1px solid #7f8c8d; border-radius: 4px; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    `;
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>농장 & 드래곤 & 아틀란티스 (Final Fix)</title>
+<style>
+  /* 기본 설정 */
+  body { margin:0; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#e8f5e9; user-select:none; padding-bottom: 80px; transition: background 0.5s; }
+  input { user-select: text; }
 
-    document.body.appendChild(cheatContainer);
+  /* 🔥 지옥 렐름 테마 */
+  body.hell-map { background: #1a0000 !important; color: #ffccbc; }
+  body.hell-map header { background: #b71c1c; }
+  body.hell-map .area-box { background: #3e2723; color: #ffccbc; box-shadow: 0 0 15px #ff5722; border: 1px solid #ff5722; }
+  body.hell-map .area-title { color: #ffab91; border-bottom: 2px solid #8d6e63; }
+  body.hell-map .control-panel { background: #210a0a; border-bottom: 1px solid #d84315; }
+  body.hell-map .pet-section { background: #260e04; border: 1px solid #ff5722; }
+  body.hell-map .pet-card { background: #4e342e; border-color: #ff5722; color: #ffccbc; }
+  body.hell-map .btn-buy { background: #d32f2f; }
+  body.hell-map .tile { background: #3e2723; border-color: #5d4037; }
+  body.hell-map .shop-tab.active { color: #d32f2f; border-bottom-color: #d32f2f; }
 
-    // 2. UI 요소 참조
-    const header = document.getElementById('cheat-header');
-    const controls = document.getElementById('cheat-controls');
-    const toggleBtn = document.getElementById('toggle-cheat-btn');
-    const closeBtn = document.getElementById('close-cheat-btn');
-    const dmgInput = document.getElementById('dmg-mult');
-    const speedInput = document.getElementById('speed-mult');
-    const jumpInput = document.getElementById('jump-mult');
-    const rofInput = document.getElementById('rof-mult');
-    const shotgunPelletsInput = document.getElementById('shotgun-pellets');
-    const enemyCountInput = document.getElementById('enemy-count');
-    const infHpCheckbox = document.getElementById('inf-hp');
-    const infAmmoCheckbox = document.getElementById('inf-ammo'); // Modified
-    const godModeCheckbox = document.getElementById('god-mode');
-    const noRecoilCheckbox = document.getElementById('no-recoil');
-    const autoFireCheckbox = document.getElementById('auto-fire');
-    const resetBtn = document.getElementById('reset-cheats-btn');
+  /* 🌊 심해(Water) 렐름 테마 */
+  body.water-map { background: #001021 !important; color: #e0f7fa; }
+  body.water-map header { background: #01579b; }
+  body.water-map .area-box { background: #002f4b; color: #e0f7fa; box-shadow: 0 0 15px #0288d1; border: 1px solid #0288d1; }
+  body.water-map .area-title { color: #4fc3f7; border-bottom: 2px solid #0277bd; }
+  body.water-map .control-panel { background: #001834; border-bottom: 1px solid #039be5; }
+  body.water-map .pet-section { background: #002147; border: 1px solid #0288d1; }
+  body.water-map .pet-card { background: #01365e; border-color: #03a9f4; color: #b3e5fc; }
+  body.water-map .btn-buy { background: #0277bd; }
+  body.water-map .tile { background: #004d40; border-color: #00695c; }
+  body.water-map .group-label { color: #81d4fa; }
+  body.water-map .shop-tab.active { color: #0288d1; border-bottom-color: #0288d1; }
 
-    // 3. UI 이벤트 리스너
-    let isDragging = false;
-    let currentX;
-    let currentY;
-    let initialX;
-    let initialY;
-    let xOffset = 0;
-    let yOffset = 0;
+  /* ☢️ 방사능(Radioactive) 렐름 테마 */
+  body.radio-map { background: #050f00 !important; color: #ccff90; }
+  body.radio-map header { background: #33691e; }
+  body.radio-map .area-box { background: #1b5e20; color: #ccff90; box-shadow: 0 0 15px #76ff03; border: 1px solid #76ff03; }
+  body.radio-map .area-title { color: #76ff03; border-bottom: 2px solid #64dd17; text-shadow: 0 0 5px #76ff03; }
+  body.radio-map .control-panel { background: #0f2010; border-bottom: 1px solid #76ff03; }
+  body.radio-map .pet-section { background: #000; border: 1px solid #76ff03; }
+  body.radio-map .pet-card { background: #1b5e20; border-color: #76ff03; color: #ccff90; }
+  body.radio-map .btn-buy { background: #4caf50; color:black; font-weight:bold; }
+  body.radio-map .tile { background: #212121; border-color: #76ff03; box-shadow: inset 0 0 10px #76ff03; }
+  body.radio-map .shop-tab.active { color: #76ff03; border-bottom-color: #76ff03; background: #1b5e20; }
+  body.radio-map .popup { background: #1b5e20; color: #ccff90; border: 2px solid #76ff03; }
+  body.radio-map .popup-header { background: #000; color: #76ff03; }
+  body.radio-map .btn-popup-close { background: #000; color: #76ff03; border-color: #76ff03; }
+  body.radio-map .pet-count { color: #76ff03; }
 
-    header.addEventListener("mousedown", dragStart);
-    document.addEventListener("mouseup", dragEnd);
-    document.addEventListener("mousemove", drag);
+  /* 상단 정보바 */
+  header {
+    background:#2e7d32; color:white; padding:10px 15px; position:sticky; top:0; z-index:900;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); display:flex; justify-content:space-between; align-items:center; transition: background 0.5s;
+  }
+  .header-left { display:flex; flex-direction:column; }
+  #coins { font-size:22px; font-weight:bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+  #realmDisplay { font-size:12px; color:#fff; margin-top:2px; font-weight:bold; opacity: 0.9; }
+  #adminTag { font-size:10px; background:#ffeb3b; color:#000; padding:1px 4px; border-radius:4px; margin-left:5px; display:none; }
 
-    function dragStart(e) {
-        initialX = e.clientX - xOffset;
-        initialY = e.clientY - yOffset;
+  /* 버튼 그룹 */
+  .header-right { display:flex; gap: 10px; }
+  .icon-btn { 
+    background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); 
+    color:white; border-radius:50%; width:35px; height:35px; cursor:pointer; font-size:18px;
+    display:flex; justify-content:center; align-items:center; transition:0.2s;
+  }
+  .icon-btn:hover { background:rgba(255,255,255,0.4); }
 
-        if (e.target === header) {
-            isDragging = true;
-        }
-    }
+  /* 비밀 코드 입력창 */
+  #codePanel {
+    position: fixed; bottom: 10px; left: 10px; z-index: 10000;
+    background: rgba(255,255,255,0.9); padding: 8px; border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3); display:flex; gap:5px;
+  }
+  #codeInput { border:1px solid #ccc; padding:5px; border-radius:4px; font-size:12px; width: 120px; letter-spacing: 2px; }
+  #codeBtn { background:#333; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; }
 
-    function dragEnd() {
-        initialX = currentX;
-        initialY = currentY;
+  /* 컨트롤 패널 */
+  .control-panel { background:#fff; padding:10px; border-bottom:1px solid #ddd; display:flex; gap:15px; flex-wrap:wrap; justify-content:center; align-items:flex-start; transition: background 0.5s; }
+  .panel-group { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+  .group-label { font-weight:bold; font-size:14px; color:#555; margin-right:5px; }
 
-        isDragging = false;
-    }
+  .seed, .item {
+    padding:6px 12px; border:2px solid #ccc; cursor:pointer; background:#fafafa; border-radius:15px;
+    font-size:13px; font-weight: bold; transition: all 0.2s; box-shadow: 0 2px 2px rgba(0,0,0,0.1);
+  }
+  .seed:hover, .item:hover { transform: translateY(-2px); box-shadow: 0 4px 5px rgba(0,0,0,0.2); }
+  .selected { 
+    transform:scale(1.1) !important; box-shadow:0 0 10px rgba(0,0,0,0.3) !important; z-index: 10;
+    border-width: 3px !important;
+  }
 
-    function drag(e) {
-        if (isDragging) {
-            e.preventDefault();
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
+  /* 작물 컬러 */
+  .seed[data-type="potato"] { background: #efebe9; border-color: #8d6e63; color: #5d4037; }
+  .seed[data-type="tomato"] { background: #ffebee; border-color: #ef5350; color: #c62828; }
+  .seed[data-type="tulip"] { background: #fce4ec; border-color: #f48fb1; color: #ad1457; }
+  .seed[data-type="sunflower"] { background: #fffde7; border-color: #fdd835; color: #f57f17; }
+  .seed[data-type="wheat"] { background: #fffde7; border-color: #fbc02d; color: #f57f17; }
+  .seed[data-type="pumpkin"] { background: #fff3e0; border-color: #ff9800; color: #e65100; }
+  .seed[data-type="peach"] { background: #fff0f5; border-color: #ff80ab; color: #c51162; }
+  .seed[data-type="moneytree"] { background: #e8f5e9; border-color: #43a047; color: #1b5e20; border-style: double; }
+  
+  /* 🌊 물 작물 */
+  .seed[data-type="clam"] { background: #e1f5fe; border-color: #29b6f6; color: #01579b; }
+  .seed[data-type="seaweed"] { background: #e0f2f1; border-color: #009688; color: #004d40; }
+  .seed[data-type="coral"] { background: #ffebee; border-color: #ef5350; color: #b71c1c; }
+  .seed[data-type="starfish"] { background: #fff3e0; border-color: #ff9800; color: #e65100; }
+  .seed[data-type="goldenclam"] { background: #fff8e1; border-color: #ffca28; color: #ff6f00; box-shadow: 0 0 5px #ffd700; }
 
-            xOffset = currentX;
-            yOffset = currentY;
+  /* 🔥 지옥 작물 */
+  .seed[data-type="firegrass"] { background: #ffebee; border-color: #ff5722; color: #d84315; }
+  .seed[data-type="magmapotato"] { background: #3e2723; border-color: #ffca28; color: #ff6f00; }
+  .seed[data-type="hellchili"] { background: #b71c1c; border-color: #d50000; color: #ff8a80; }
+  .seed[data-type="cursedflower"] { background: #4a148c; border-color: #880e4f; color: #ea80fc; }
+  .seed[data-type="helltree"] { background: #212121; border-color: #b71c1c; color: #ff1744; box-shadow: 0 0 5px #ff5252; }
+  .seed[data-type="dragonfruit"] { background: #263238; border-color: #ff1744; color: #ff5252; box-shadow: 0 0 5px #ff1744; }
 
-            setTranslate(currentX, currentY, cheatContainer);
-        }
-    }
+  /* ☢️ 방사능 작물 */
+  .seed[data-type="mutanttomato"] { background: #33691e; border-color: #76ff03; color: #ccff90; }
+  .seed[data-type="uraniumcorn"] { background: #1b5e20; border-color: #c6ff00; color: #f4ff81; box-shadow: 0 0 5px #c6ff00; }
+  .seed[data-type="glowingmushroom"] { background: #004d40; border-color: #00e676; color: #69f0ae; }
+  .seed[data-type="nuclearflower"] { background: #212121; border-color: #ff3d00; color: #ff9e80; box-shadow: 0 0 5px #ff3d00; }
 
-    function setTranslate(xPos, yPos, el) {
-        el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
-    }
+  /* 아이템 */
+  .item[data-item="water"] { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+  .item[data-item="goldwater"] { background: #fff8e1; border-color: #ffca28; color: #ff6f00; }
+  .item[data-item="diamondwater"] { background: #e0f7fa; border-color: #00bcd4; color: #006064; }
+  .item[data-item="emeraldwater"] { background: #e8f5e9; border-color: #00e676; color: #1b5e20; }
+  .item[data-item="adminwater"] { background: #212121; border-color: #000; color: #ffeb3b; border-style: dashed; }
+  /* ☢️ 방사능 물 */
+  .item[data-item="radioactivewater"] { background: #000; border-color: #76ff03; color: #76ff03; box-shadow: 0 0 5px #76ff03; animation: pulse 1s infinite; }
 
-    toggleBtn.addEventListener('click', () => {
-        if (controls.style.display === 'none') {
-            controls.style.display = 'block';
-            toggleBtn.textContent = 'Hide';
+  /* 메인 레이아웃 */
+  #main-container { display:flex; flex-wrap:wrap; justify-content:center; gap:20px; padding:20px; }
+
+  /* 구역 박스 */
+  .area-box { background:white; padding:15px; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.05); transition:background 0.5s; }
+  h2.area-title { margin-top:0; text-align:center; color:#333; border-bottom:2px solid #eee; padding-bottom:10px; margin-bottom:15px; }
+
+  /* 농장 그리드 */
+  #farm { display:grid; grid-template-columns:repeat(5, 70px); gap:5px; } 
+  @media (min-width: 800px) { #farm { grid-template-columns:repeat(10, 70px); } }
+
+  .tile {
+    width:70px; height:70px; background:#c2a878; border:2px solid #8b6f47; border-radius:4px;
+    display:flex; justify-content:center; align-items:center; position:relative; cursor:pointer;
+    transition: all 0.5s;
+  }
+
+  .plant { font-size:35px; z-index:2; }
+  .timer { 
+    position:absolute; bottom:2px; font-size:10px; color:white;
+    background:rgba(0,0,0,0.6); padding:1px 4px; border-radius:4px; pointer-events:none; z-index:3;
+  }
+  
+  /* 플로팅 텍스트 */
+  .float-text {
+    position:absolute; color:#ffeb3b; font-weight:bold; font-size:16px; z-index:10;
+    text-shadow: 1px 1px 2px black; animation: floatUp 0.8s forwards; pointer-events: none; width: 100%; text-align: center;
+  }
+  @keyframes floatUp { 0% { transform:translateY(0); opacity:1; } 100% { transform:translateY(-40px); opacity:0; } }
+
+  /* 동물 농장 */
+  #animalFarm { width: 320px; }
+  .pet-section { margin-bottom: 20px; background:#f9f9f9; padding:10px; border-radius:10px; }
+  .pet-stats { display:flex; justify-content:space-around; margin-bottom:10px; }
+  .pet-card { text-align:center; font-size:12px; background:#fff; padding:8px 5px; border-radius:8px; border:1px solid #eee; width:30%; box-shadow:0 2px 2px rgba(0,0,0,0.05); }
+  .pet-icon { font-size:24px; display:block; margin-bottom:2px; }
+  .pet-count { font-weight:bold; color:#009688; font-size:16px; }
+  body.hell-map .pet-count { color: #ff5722; }
+  
+  .egg-btn {
+    width:100%; padding:12px; color:white; border:none; border-radius:8px; font-size:14px; font-weight:bold; cursor:pointer; margin-top:5px;
+    transition: transform 0.1s;
+  }
+  .egg-btn:active { transform:translateY(2px); }
+  
+  .btn-normal { background:#ff9800; }
+  .btn-sea { background:#2196f3; }
+  .btn-hell { background:#d84315; }
+  .btn-legend { background:#d50000; box-shadow: 0 4px 0 #b71c1c; animation: glow 2s infinite; }
+  .btn-admin { background:#263238; border:1px solid #fff; box-shadow: 0 4px 0 #000; }
+  /* ☢️ 방사능 알 버튼 */
+  .btn-radio { background: #1b5e20; border: 2px solid #76ff03; color: #76ff03; font-weight: bold; box-shadow: 0 4px 0 #006400; }
+  
+  @keyframes glow { 0% { box-shadow: 0 0 5px #d50000; } 50% { box-shadow: 0 0 15px #ff1744; } 100% { box-shadow: 0 0 5px #d50000; } }
+
+  /* 팝업 공통 */
+  .popup {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:#fff; padding:0; border-radius:15px; z-index:99999;
+    width:400px; max-width: 90%; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+  /* 팝업 헤더 초록색으로 변경 (#4caf50) */
+  .popup-header { background:#4caf50; color:white; padding:15px; font-size:20px; font-weight:bold; }
+  .popup-content { padding: 20px; }
+  .hidden { display:none !important; }
+
+  /* 퀘스트 팝업 */
+  .quest-item { background: #f5f5f5; padding: 10px; margin-bottom: 5px; border-radius: 8px; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+  .quest-desc { font-weight: bold; font-size: 14px; }
+  .quest-progress { font-size: 12px; color: #666; }
+  
+  /* 상점 탭 */
+  .shop-tabs { display:flex; justify-content:space-around; background:#f0f0f0; border-bottom:1px solid #ddd; }
+  .shop-tab { padding:10px 15px; cursor:pointer; font-weight:bold; color:#555; border-bottom:3px solid transparent; width:50%; text-align:center; }
+  /* 기본 활성 탭 초록색으로 변경 */
+  .shop-tab.active { color:#2e7d32; border-bottom:3px solid #2e7d32; background:white; }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+  
+  /* 리스트 스타일 */
+  .list-container { max-height: 250px; overflow-y: auto; text-align:left; margin-bottom:15px; border:1px solid #eee; border-radius:8px; padding: 5px 0; }
+  .shop-item, .inv-item { padding:10px 15px; border-bottom:1px solid #f7f7f7; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;}
+
+  /* 버튼 스타일 */
+  .btn-flat { background:#eee; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold; }
+  /* 기본 구매 버튼 초록색으로 변경 */
+  .btn-buy { background:#4caf50; color:white; }
+  
+  .btn-diff-select, .btn-popup-close { 
+    display:block; width:100%; margin:10px 0; padding:12px; font-size:16px; 
+    background:#fff; border:2px solid #ddd; border-radius:8px; cursor:pointer; transition:0.2s;
+  }
+  .btn-diff-select:hover, .btn-popup-close:hover { background:#f5f5f5; }
+
+  .btn-harvest-all {
+    width: 100%; margin-top: 10px; padding: 12px; font-weight: bold; background: #8bc34a; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; box-shadow: 0 4px #558b2f;
+  }
+  .btn-harvest-all:active { box-shadow: 0 2px #558b2f; transform: translateY(2px); }
+
+  /* 알 개봉 버튼 그룹 */
+  .hatch-btn-group { display:flex; gap:3px; margin-top:5px; }
+  .hatch-btn-group button { padding: 4px 8px; font-size:11px; cursor:pointer; border:none; border-radius:4px; color:white; transition:0.1s; }
+  .hatch-btn-group button:active { transform:scale(0.95); }
+  
+  .btn-egg-land { background: #ff9800; }
+  .btn-egg-sea { background: #2196f3; }
+  .btn-egg-hell { background: #d84315; }
+  .btn-egg-legend { background: #d50000; }
+  .btn-egg-admin { background: #212121; border:1px solid #fff; }
+  .btn-egg-radio { background: #1b5e20; border:1px solid #76ff03; color:#76ff03; }
+
+  /* 메뉴 버튼 */
+  #inventoryBtn, #shopBtn {
+    position:fixed; right:20px; width:50px; height:50px; border-radius:50%;
+    background:white; cursor:pointer; border:2px solid #ccc; font-size:20px;
+    z-index:1000000; box-shadow:0 4px 6px rgba(0,0,0,0.2); display:flex; justify-content:center; align-items:center;
+  }
+  /* 상점 버튼 아이콘 색상 변경 (초록 계열) */
+  #shopBtn { bottom:80px; background:#e8f5e9; color:#2e7d32; border-color:#4caf50; }
+  #inventoryBtn { bottom:20px; background:#fff3e0; color:#e64a19; border-color:#ff9800; }
+  
+  /* 펫 부화 창 */
+  #hatchWindow { 
+    z-index: 20000000 !important;
+    background: linear-gradient(135deg, #e3f2fd, #fff); 
+    border: 5px solid #0288d1; 
+    pointer-events: auto; 
+  }
+  .egg-hatch-animation { animation: pulse 0.5s infinite alternate, shine 1s; padding:20px; border-radius:15px; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+  .hatch-result-text { font-size:24px; font-weight:bold; color:#01579b; margin-top:10px; word-break: keep-all; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div id="coins">💰 0</div>
+    <div id="realmDisplay">현재: 🏡 일반 농장 <span id="adminTag">ADMIN</span></div>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" id="questBtn" title="퀘스트">📜</button>
+    <button class="icon-btn" id="settingBtn" title="설정/초기화">⚙️</button>
+    <button class="icon-btn" id="saveIndicator" title="자동저장됨" style="display:none; color:#76ff03;">💾</button>
+  </div>
+  <div id="msg" style="position:absolute; top:50px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); color:white; padding:5px 10px; border-radius:20px; font-size:12px; pointer-events:none; transition:opacity 0.5s;">환영합니다!</div>
+</header>
+
+<!-- 비밀 코드 입력 -->
+<div id="codePanel">
+  <input type="password" id="codeInput" placeholder="비밀 코드">
+  <button id="codeBtn">이동</button>
+</div>
+
+<button id="shopBtn" title="상점">🛒</button>
+<button id="inventoryBtn" title="인벤토리">🎒</button>
+
+<!-- 난이도/설정 윈도우 -->
+<div id="settingWindow" class="popup hidden">
+  <div class="popup-header">⚙️ 설정</div>
+  <div class="popup-content">
+    <div style="margin-bottom:15px; color:#555; font-size:14px;">게임은 자동으로 저장됩니다.</div>
+    <button class="btn-diff-select" data-diff="easy">🙂 난이도: 쉬움</button>
+    <button class="btn-diff-select" data-diff="normal">😐 난이도: 보통</button>
+    <button class="btn-diff-select" data-diff="hard">😫 난이도: 어려움</button>
+    <hr>
+    <button class="btn-popup-close" id="resetGameBtn" style="background:#ffcdd2; color:#c62828; border-color:#e57373;">⚠️ 데이터 초기화</button>
+    <button class="btn-popup-close" id="closeSetting">닫기</button>
+  </div>
+</div>
+
+<!-- 퀘스트 윈도우 -->
+<div id="questWindow" class="popup hidden">
+  <div class="popup-header">📜 오늘의 퀘스트 (무한)</div>
+  <div class="popup-content">
+    <div id="questList" class="list-container">
+      <!-- 동적 생성 -->
+    </div>
+    <button class="btn-popup-close" id="closeQuest">닫기</button>
+  </div>
+</div>
+
+<!-- 펫 개봉 창 -->
+<div id="hatchWindow" class="popup hidden">
+  <h2>펫 부화!</h2>
+  <div class="egg-hatch-animation">
+    <div id="hatchIcon" style="font-size:80px;">🥚</div>
+  </div>
+  <div class="hatch-result-text" id="hatchName">...</div>
+  <div style="font-size:12px; margin-top:5px; color:#555; max-height:100px; overflow-y:auto;" id="hatchSummary"></div>
+  <button class="btn-popup-close" id="closeHatchBtn" style="margin-top:15px; background:#0288d1; color:white; font-weight:bold; cursor:pointer;">확인</button>
+</div>
+
+<!-- 컨트롤 패널 -->
+<div class="control-panel">
+  <div class="panel-group">
+    <span class="group-label">🌱 씨앗:</span>
+    <div id="seeds" style="display:flex; gap:5px;"></div>
+  </div>
+  <div class="panel-group">
+    <span class="group-label">🛠 도구:</span>
+    <div id="items" style="display:flex; gap:5px;">
+      <div class="item" data-item="water">💧 물</div>
+      <div class="item" data-item="goldwater">✨ 황금</div>
+      <div class="item" data-item="diamondwater">💎 다이아</div>
+      <div class="item" data-item="emeraldwater">💚 에메랄드</div>
+      <div class="item" data-item="adminwater">⚡ 관리자</div>
+      <div class="item" data-item="radioactivewater" style="display:none;">☢️ 방사능</div>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 영역 -->
+<div id="main-container">
+  
+  <div class="area-box">
+    <h2 class="area-title">🌽 농장</h2>
+    <div id="farm"></div>
+    <button class="btn-harvest-all" id="harvestAllBtn">🚜 전체 수확</button>
+  </div>
+
+  <div class="area-box" id="animalFarm">
+    <!-- 자바스크립트로 펫 구역 동적 생성 -->
+  </div>
+
+</div>
+
+<!-- 상점 팝업 -->
+<div id="shopWindow" class="popup hidden">
+  <div class="popup-header">🏪 상점</div>
+  <div class="shop-tabs">
+    <div class="shop-tab active" data-tab="seeds-tab">🌱 씨앗/알</div>
+    <div class="shop-tab" data-tab="items-tab">🛠 아이템</div>
+  </div>
+  <div class="popup-content">
+    <div class="tab-content active" id="seeds-tab">
+      <div class="list-container" id="shopSeedList"></div>
+    </div>
+    <div class="tab-content" id="items-tab">
+      <div class="list-container" id="shopItemList"></div>
+    </div>
+    <button id="closeShop" class="btn-popup-close">닫기</button>
+  </div>
+</div>
+
+<!-- 인벤토리 팝업 -->
+<div id="inventoryWindow" class="popup hidden">
+  <div class="popup-header">🎒 인벤토리</div>
+  <div class="popup-content">
+    <div class="list-container" id="inventoryListContainer">
+      <!-- 자바스크립트로 인벤토리 동적 생성 -->
+    </div>
+    <button id="closeInv" class="btn-popup-close">닫기</button>
+  </div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+
+  // ========================
+  // 1. 데이터 설정
+  // ========================
+  let coins = 0;
+  let growSpeed = 1; 
+  let currentRealm = "normal"; 
+  let currentDiff = "normal"; 
+  let isAdminMode = false; // 관리자 모드 여부
+  
+  // 코드 사용 여부 저장
+  let isCodeUsed_130622 = false;
+  let isCodeUsed_dlalsgh1215 = false;
+  let isCodeUsed_538889 = false;
+  let isCodeUsed_2437 = false;
+  
+  let currentQuest = null; 
+
+  const petInfo = {
+    // [Normal]
+    dog: { name: "강아지", icon: "🐶", desc: "성장 속도 5% ↑" },
+    cat: { name: "고양이", icon: "🐱", desc: "10초마다 1,000코인" },
+    frog: { name: "개구리", icon: "🐸", desc: "1분마다 급성장" },
+    
+    // [Water - 복구됨]
+    seal: { name: "물개", icon: "🦭", desc: "판매 가격 5% ↑" },
+    crab: { name: "꽃게", icon: "🦀", desc: "10% 확률로 아이템" },
+    shark: { name: "상어", icon: "🦈", desc: "20% 확률로 2배 코인" },
+    
+    // [Hell]
+    imp: { name: "임프", icon: "😈", desc: "판매 가격 10% ↑" },
+    cerberus: { name: "케르베로스", icon: "🐕‍🦺", desc: "성장 속도 1.5배 (불)" },
+    devil: { name: "악마", icon: "👺", desc: "30% 확률로 2배 코인" },
+    
+    phoenix: { name: "불사조", icon: "🦅", desc: "성장 속도 2배 (강력)" },
+    hydra: { name: "히드라", icon: "🐍", desc: "판매 가격 3배 (강력)" },
+    dragon: { name: "드래곤", icon: "🐲", desc: "성장2배+판매5배+광역성장" },
+
+    // [Radioactive - New]
+    slime: { name: "슬라임", icon: "🦠", desc: "10초마다 방사능 코인 획득" },
+    mutantfish: { name: "돌연변이 물고기", icon: "🐟", desc: "성장 속도 20% ↑" },
+    spider: { name: "거대 거미", icon: "🕷️", desc: "판매 가격 50% ↑" }
+  };
+  
+  let pets = { dog:0, cat:0, frog:0, seal:0, crab:0, shark:0, imp:0, cerberus:0, devil:0, phoenix:0, hydra:0, dragon:0, slime:0, mutantfish:0, spider:0 };
+
+  const allPlants = {
+    // [일반]
+    potato:   {name:"🥔감자", cost:10,  sell:15,  grow:2*60000,  stages:["🌱","🌿","🥔"], realm:"normal"},
+    tomato:   {name:"🍅토마토", cost:30,  sell:45,  grow:5*60000,  stages:["🌱","🌿","🍅"], realm:"normal"},
+    tulip:    {name:"🌷튤립", cost:50,  sell:80,  grow:10*60000, stages:["🌱","🌿","🌷"], realm:"normal"},
+    sunflower:{name:"🌻해바라기", cost:80, sell:120, grow:12*60000, stages:["🌱","🌻","🌻"], realm:"normal"}, 
+    wheat:    {name:"🌾밀",   cost:100, sell:150, grow:15*60000, stages:["🌱","🌿","🌾"], realm:"normal"},
+    pumpkin:  {name:"🎃호박", cost:150, sell:230, grow:20*60000, stages:["🌱","🌿","🎃"], realm:"normal"},
+    peach:    {name:"🍑복숭아", cost:500, sell:666, grow:50*60000, stages:["🌱","🌿","🍑"], realm:"normal"},
+    moneytree:{name:"💰돈나무", cost:100000, sell:0, grow:60*60000, stages:["🌱","🌳","💰"], realm:"normal", isSpecial:true},
+    
+    // [심해 - Water]
+    seaweed:  {name:"🌿미역", cost:50, sell:90, grow:5*60000, stages:["💧","🌿","🌿"], realm:"water"},
+    clam:     {name:"🐚조개", cost:444, sell:555, grow:44*60000, stages:["💧","🐚","✨🐚"], realm:"water"}, 
+    coral:    {name:"🪸산호", cost:200, sell:350, grow:20*60000, stages:["💧","🪸","🪸"], realm:"water"},
+    starfish: {name:"⭐불가사리", cost:500, sell:900, grow:45*60000, stages:["💧","⭐","⭐"], realm:"water"},
+    goldenclam:{name:"🐚황금조개", cost:2000, sell:5000, grow:120*60000, stages:["💧","🐚","👑"], realm:"water"},
+
+    // [지옥 - Hell]
+    firegrass:    {name:"🔥불꽃풀", cost:700, sell:1500, grow:30*60000, stages:["🔥","🌿","🔥"], realm:"hell"},
+    magmapotato:  {name:"🥔마그마감자", cost:1000, sell:2200, grow:50*60000, stages:["🌱","🔥","🥔"], realm:"hell"},
+    hellchili:    {name:"🌶지옥고추", cost:1500, sell:3500, grow:80*60000, stages:["🌱","🌶","🔥"], realm:"hell"},
+    cursedflower: {name:"🥀저주꽃", cost:2500, sell:6000, grow:100*60000, stages:["🌱","🥀","👻"], realm:"hell"},
+    helltree:     {name:"👹지옥나무", cost:3500, sell:8000, grow:120*60000, stages:["🔥","🌲","👹"], realm:"hell"},
+    
+    // [관리자]
+    dragonfruit:{name:"🐲용과", cost:0, sell:500000, grow:30*1000, stages:["🔥","🐉","🐲"], realm:"hell", isSpecial:true},
+
+    // [방사능 - Radioactive]
+    mutanttomato: {name:"🍅돌연변이 토마토", cost:2000, sell:3500, grow:40*60000, stages:["🌱","🌿","🍅"], realm:"radioactive"},
+    uraniumcorn: {name:"🌽우라늄 옥수수", cost:4000, sell:8000, grow:60*60000, stages:["🌱","🌽","🔥"], realm:"radioactive"},
+    glowingmushroom: {name:"🍄형광 버섯", cost:6000, sell:12000, grow:90*60000, stages:["🌱","🍄","✨"], realm:"radioactive"},
+    nuclearflower: {name:"🥀핵폐기물 꽃", cost:10000, sell:25000, grow:120*60000, stages:["🌱","🥀","☢️"], realm:"radioactive"}
+  };
+
+  const itemInfo = {
+    water:       {name:"물뿌리개", cost:100, reduce:5*60000},
+    goldwater:   {name:"황금물뿌리개", cost:250, reduce:25*60000},
+    diamondwater:{name:"다이아물뿌리개", cost:500, reduce:45*60000},
+    emeraldwater:{name:"에메랄드물", cost:1000, reduce:120*60000},
+    adminwater:  {name:"⚡관리자물", cost:0, reduce:999999999},
+    radioactivewater: {name:"☢️방사능물", cost:3000, reduce:300*60000} // 5시간
+  };
+
+  let inventory = { 
+    egg:0, seaEgg:0, hellEgg:0, legendEgg:0, adminEgg:0, radioEgg:0,
+    water:0, goldwater:0, diamondwater:0, emeraldwater:0, adminwater:0, radioactivewater:0,
+    pearl:0
+  };
+  for(let key in allPlants) inventory[key] = 0; 
+
+  let selectedSeed = null;
+  let selectedItem = null;
+
+  // ========================
+  // 2. 초기화 및 로드
+  // ========================
+  
+  const farm = document.getElementById("farm");
+  for(let i=0; i<50; i++){
+    const t = document.createElement("div");
+    t.className = "tile";
+    t.id = `tile-${i}`; 
+    t.onclick = () => onTileClick(t);
+    farm.appendChild(t);
+  }
+
+  loadGame(); 
+  if(!currentQuest) generateNewQuest(); 
+
+  refreshUI();
+
+  // 상점 탭 기능
+  document.querySelectorAll('.shop-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ========================
+  // 3. 차원 이동 / 코드
+  // ========================
+  document.getElementById("codeBtn").onclick = checkCode;
+  function checkCode() {
+    const val = document.getElementById("codeInput").value;
+    
+    if(val === "yyyuy987") { // Hell
+        if(currentRealm === "hell") return;
+        changeRealm("hell");
+        showMsg("🔥 지옥 차원 이동!");
+    } else if(val === "a12341234") { // Normal
+        if(currentRealm === "normal") return;
+        changeRealm("normal");
+        showMsg("🏡 일반 농장 복귀!");
+    } else if(val === "yyyuy789") { // Water
+        if(currentRealm === "water") return;
+        changeRealm("water");
+        showMsg("🌊 심해 차원 이동!");
+    } else if(val === "130622") { // Bonus Code
+        if(isCodeUsed_130622) {
+            alert("이미 사용한 코드입니다.");
         } else {
-            controls.style.display = 'none';
-            toggleBtn.textContent = 'Show';
+            coins += 1000;
+            isCodeUsed_130622 = true;
+            updateCoinDisplay();
+            saveGame();
+            showMsg("🎁 코드 입력 완료! 1000코인 획득!");
         }
-    });
-
-    closeBtn.addEventListener('click', () => {
-        cheatContainer.remove();
-        // 훅 제거 (옵션)
-        if (window.originalUpdatePlayer) {
-            window.updatePlayer = window.originalUpdatePlayer;
-        }
-        if (window.originalAttemptFire) {
-            window.attemptFire = window.originalAttemptFire;
-        }
-        if (window.originalEnemyFire) {
-            window.enemyFire = window.originalEnemyFire;
-        }
-        if (window.originalFire) {
-            window.fire = window.originalFire;
-        }
-        if (window.originalResetMission) {
-            window.resetMission = window.originalResetMission;
-        }
-    });
-
-    resetBtn.addEventListener('click', () => {
-        dmgInput.value = 1;
-        speedInput.value = 1;
-        jumpInput.value = 1;
-        rofInput.value = 1;
-        shotgunPelletsInput.value = 10;
-        enemyCountInput.value = 1;
-        infHpCheckbox.checked = false;
-        infAmmoCheckbox.checked = false; // Modified
-        godModeCheckbox.checked = false;
-        noRecoilCheckbox.checked = false;
-        autoFireCheckbox.checked = false;
-    });
-
-    // 4. 게임 로직 훅 (Hook) 함수
-    // 원본 함수 백업
-    if (!window.originalUpdatePlayer) window.originalUpdatePlayer = window.updatePlayer;
-    if (!window.originalAttemptFire) window.originalAttemptFire = window.attemptFire;
-    if (!window.originalEnemyFire) window.originalEnemyFire = window.enemyFire;
-    if (!window.originalFire) window.originalFire = window.fire;
-    if (!window.originalResetMission) window.originalResetMission = window.resetMission;
-
-    // resetMission 훅: 적 수 조절
-    window.resetMission = function() {
-        // 원래 로직 시작 부분 (플레이어 상태 리셋 등)은 그대로
-        player.hp = player.maxHp;
-        player.dead = false;
-        player.dying = false;
-        player.pos.set(0, 2, 100);
-        player.vel.set(0,0,0);
-        player.rot.set(0,0,0,'YXZ');
-        camera.rotation.set(0,0,0);
-        document.getElementById('hp-val').innerText = player.hp;
-
-        // [수정] 적 상태 리셋 및 적 생성: UI 값 가져오기
-        const enemyCount = parseInt(enemyCountInput.value) || 1;
-        // 기존 적들 제거 (이전 게임에서 남은 적이 있을 수 있음)
-        if (window.allEnemies) {
-            window.allEnemies.forEach(e => {
-                if (e.mesh) scene.remove(e.mesh);
-            });
-        }
-        window.allEnemies = [];
-
-        // 새로운 적 생성
-        for (let i = 0; i < enemyCount; i++) {
-            const newEnemy = JSON.parse(JSON.stringify(enemy)); // 기본 enemy 객체 복사
-            newEnemy.mesh = null;
-            newEnemy.hp = 200; // HP 초기화
-            newEnemy.dead = false;
-            newEnemy.dying = false;
-            newEnemy.state = 'SEARCH';
-            newEnemy.vel = new THREE.Vector3();
-            newEnemy.wIdx = 0; // 임시 초기화
-            newEnemy.ammo = 30; // 임시 초기화
-            newEnemy.nextShot = 0;
-            newEnemy.reloadEnd = 0;
-            newEnemy.swapEnd = 0;
-            newEnemy.targetPos = new THREE.Vector3();
-
-            // 적 스폰 위치를 약간 랜덤하게 설정 (기존 enemy 스폰 위치 주변)
-            const spawnOffset = new THREE.Vector3((Math.random() - 0.5) * 20, 0, (Math.random() - 0.5) * 20);
-            spawnEnemy(newEnemy, spawnOffset);
-            window.allEnemies.push(newEnemy);
-        }
-
-        // 나머지 원래 로직 (투사체, 파티클, 데미지 레이블, 제트 등 제거)
-        projectiles.forEach(p => scene.remove(p.mesh));
-        projectiles = [];
-        particles.forEach(p => scene.remove(p.mesh));
-        particles = [];
-        damageLabels.forEach(d => d.el.remove());
-        damageLabels = [];
-        jets.forEach(j => scene.remove(j.mesh));
-        jets = [];
-
-        // [수정] 무한 탄약: 초기화 시에도 무한으로 설정
-        WEAPONS.forEach(w => {
-            w.ammo = infAmmoCheckbox.checked ? w.max : w.max; // 체크 상태에 따라 초기화
-        });
-        setWeapon(0);
-        isGameActive = true;
-    };
-
-    // updatePlayer 훅 (속도, 점프, 체력, 탄약, 반동, 강제 연사)
-    window.updatePlayer = function(dt, time) {
-        // UI 값 가져오기
-        const speedMult = parseFloat(speedInput.value) || 1;
-        const jumpMult = parseFloat(jumpInput.value) || 1;
-
-        // 원래 로직 시작 부분 (camera.quaternion, input 처리 등)은 그대로
-        if(player.dying) {
-            camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0.5, dt * 2);
-            camera.rotation.z = THREE.MathUtils.lerp(camera.rotation.z, 0.8, dt * 2);
-            camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, -0.2, dt * 2);
-            return;
-        }
-        camera.quaternion.setFromEuler(player.rot);
-        const w = WEAPONS[curWep];
-        const isAim = input.aim && !isReloading;
-        const lockUI = document.getElementById('lock-target');
-        const firstAliveEnemy = window.allEnemies ? window.allEnemies.find(e => !e.dead) : enemy;
-        if(w.isHoming && firstAliveEnemy && !firstAliveEnemy.dead) {
-            const ePos = firstAliveEnemy.mesh.position.clone().add(new THREE.Vector3(0, 1.5, 0));
-            ePos.project(camera);
-            if(ePos.x > -1 && ePos.x < 1 && ePos.y > -1 && ePos.y < 1 && ePos.z < 1) {
-                const x = (ePos.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (-ePos.y * 0.5 + 0.5) * window.innerHeight;
-                lockUI.style.display = 'block';
-                lockUI.style.left = x + 'px'; lockUI.style.top = y + 'px';
-            } else lockUI.style.display = 'none';
-        } else lockUI.style.display = 'none';
-
-        // [수정] 모바일 자동 발사 로직: UI 토글을 우선시함
-        let autoLocked = false;
-        if(CFG.mode === 'mob' && !w.isHoming && !w.isGL && !w.isAirstrike && !isReloading) {
-            // 치트 토글이 켜져있으면 항상 자동 발사
-            if (autoFireCheckbox.checked) {
-                input.fire = true;
-                triggerReleased = true;
-            } else {
-                // 원래 로직 (수동 버튼 상태 유지)
-                input.fire = input.manual;
-                if (firstAliveEnemy && firstAliveEnemy.mesh) {
-                    const ray = new THREE.Raycaster(camera.position, camera.getWorldDirection(new THREE.Vector3()));
-                    const hits = ray.intersectObjects([...walls, firstAliveEnemy.mesh], true);
-                    if(hits.length > 0 && hits[0].object.parent === firstAliveEnemy.mesh && !firstAliveEnemy.dead) {
-                        autoLocked = true;
-                        input.fire = true;
-                        triggerReleased = true;
-                    }
-                }
-            }
-        }
-        // PC 모드에서도 치트 토글이 켜지면 자동 발사
-        if (CFG.mode === 'pc' && autoFireCheckbox.checked && !w.isHoming && !w.isGL && !w.isAirstrike && !isReloading) {
-             input.fire = true;
-             triggerReleased = true;
-        }
-
-        const ch = document.getElementById('crosshair');
-        if(autoLocked) ch.classList.add('locked'); else ch.classList.remove('locked');
-        ch.style.opacity = '1';
-        const targetPos = isAim ? new THREE.Vector3(w.aimPos.x, w.aimPos.y, w.aimPos.z) : new THREE.Vector3(w.hipPos.x, w.hipPos.y, w.hipPos.z);
-        const tFov = isAim ? w.zoom : 75;
-        if(w.scope && isAim) { document.getElementById('scope-ui').style.display='block'; gunMesh.visible=false; }
-        else { document.getElementById('scope-ui').style.display='none'; gunMesh.visible=true; }
-        camera.fov += (tFov - camera.fov) * dt * 10;
-        camera.updateProjectionMatrix();
-        const speed = Math.sqrt(player.vel.x**2 + player.vel.z**2);
-        if(speed > 1 && !isAim) {
-            targetPos.x += Math.cos(time*8) * 0.02;
-            targetPos.y += Math.sin(time*16) * 0.02;
-        }
-
-        // [수정] 반동 제거: recoilOffset가 0이 되도록 강제
-        recoilOffset = THREE.MathUtils.lerp(recoilOffset, 0, dt * 10);
-        if (noRecoilCheckbox.checked) {
-            recoilOffset = 0;
-        }
-        // recoilOffset 적용은 원래 로직과 동일
-        targetPos.z += recoilOffset; targetPos.y += recoilOffset * 0.2;
-        gunMesh.position.lerp(targetPos, dt*15);
-
-        // [수정] 속도 배수: 원래 로직에서 dir 벡터를 계산한 후, vel에 할당하기 전에 적용
-        const fwd = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion); fwd.y=0; fwd.normalize();
-        const rgt = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion); rgt.y=0; rgt.normalize();
-        const dir = new THREE.Vector3();
-        if(input.f) dir.add(fwd.multiplyScalar(input.f));
-        if(input.b) dir.add(fwd.multiplyScalar(-input.b));
-        if(input.l) dir.add(rgt.multiplyScalar(-input.l));
-        if(input.r) dir.add(rgt.multiplyScalar(input.r));
-        player.vel.x = dir.x * (15 * speedMult); // 속도 배수 적용
-        player.vel.z = dir.z * (15 * speedMult); // 속도 배수 적용
-
-        // [수정] 점프 배수: 원래 로직에서 player.vel.y = 12; 부분에 배수 적용
-        player.vel.y -= 40 * dt;
-        if(input.jump && player.canJump) {
-            player.vel.y = 12 * jumpMult; // 점프 배수 적용
-            player.canJump=false;
-        }
-        // 나머지 물리 로직 (벽 충돌, 중력 등)은 그대로
-        const nx = player.pos.x + player.vel.x*dt;
-        if(!checkWall(new THREE.Vector3(nx,2,player.pos.z))) player.pos.x = nx;
-        const nz = player.pos.z + player.vel.z*dt;
-        if(!checkWall(new THREE.Vector3(player.pos.x,2,nz))) player.pos.z = nz;
-        player.pos.y += player.vel.y*dt;
-        if(player.pos.y<2) { player.pos.y=2; player.vel.y=0; player.canJump=true; }
-        camera.position.copy(player.pos);
-
-        // [수정] 발사 로직: input.fire가 true일 때만 attemptFire 호출
-        if(input.fire) attemptFire();
-
-        // Inf HP (updatePlayer 끝에서 처리)
-        if (infHpCheckbox.checked) {
-            player.hp = player.maxHp;
-            document.getElementById('hp-val').innerText = player.hp;
-        }
-
-        // [수정] Inf Ammo (updatePlayer 끝에서 처리 - UI 업데이트만)
-        if (infAmmoCheckbox.checked) {
-            // 탄약 UI 업데이트
-            updateAmmo();
-        }
-    };
-
-
-    // [수정] RoF (Rate of Fire) 훅: 원래 로직에서 w.rate를 사용하는 부분에 배수 적용 + 무한 탄약
-    window.attemptFire = function() {
-        const w = WEAPONS[curWep];
-        const now = performance.now();
-        // [수정] 세미오토 체크는 원래 로직에서 그대로 (triggerReleased 사용)
-        if(w.type === 'semi' && !triggerReleased) return;
-        if(isReloading) return;
-        // [수정] rate에 배수 적용
-        const rofMult = parseFloat(rofInput.value) || 1;
-        if(now - lastFire < (60000/(w.rate * rofMult))) return; // rate에 배수 적용
-        // [수정] 무한 탄약 체크: 탄약이 0이어도 발사 가능
-        if(w.ammo <= 0) {
-            if (infAmmoCheckbox.checked) {
-                // 무한 탄약이면, 발사 직전에 탄약을 채워줌 (UI와 게임 로직 모두 반영)
-                w.ammo = w.max;
-                updateAmmo(); // UI 갱신
-            } else {
-                reload(); // 무한 탄약이 아니면 원래 로직대로 리로드
-                return;
-            }
-        }
-        fire(w);
-        lastFire = now;
-        if(w.type === 'semi') triggerReleased = false;
-    };
-
-    // God Mode (적의 공격을 받지 않음) - 첫 번째 적만 체크 (간소화)
-    window.enemyFire = function(w, dist) {
-        if (godModeCheckbox.checked) {
-            return; // God Mode가 켜져있으면 공격 처리 안 함
-        }
-        // 원래 로직: 적이 플레이어를 공격
-        if(player.dying) return;
-        if(w.isGL) {
-            const dir = player.pos.clone().sub(enemy.mesh.position).normalize();
-            let inaccuracy = 0.05 + (dist < 30 ? 0.2 : 0);
-            dir.x += (Math.random() - 0.5) * inaccuracy;
-            dir.y += 0.1;
-            dir.z += (Math.random() - 0.5) * inaccuracy;
-            spawnGrenade(enemy.mesh.position.clone().add(new THREE.Vector3(0,1.5,0)), dir.normalize(), false, w);
-            return;
-        }
-        const spread = w.spread * 1.5;
-        const dir = player.pos.clone().sub(enemy.mesh.position).normalize();
-        dir.x += (Math.random()-0.5)*spread; dir.y += (Math.random()-0.5)*spread; dir.z += (Math.random()-0.5)*spread;
-        const start = enemy.mesh.position.clone().add(new THREE.Vector3(0,1.5,0));
-        let end = start.clone().add(dir.normalize().multiplyScalar(100));
-        const ray = new THREE.Raycaster(start, dir.normalize());
-        const hits = ray.intersectObjects(walls);
-        if(hits.length>0) end = hits[0].point;
-        line(start, end, 0xff5500);
-        const distP = start.distanceTo(player.pos);
-        const distW = hits.length>0 ? hits[0].distance : 9999;
-        if(distP < distW) {
-            const lineRay = new THREE.Line3(start, end);
-            const closest = new THREE.Vector3();
-            const center = player.pos.clone().add(new THREE.Vector3(0,1.2,0));
-            lineRay.closestPointToPoint(center, true, closest);
-            if(closest.distanceTo(center) < 0.9) {
-                player.hp -= w.dmg;
-                document.getElementById('hp-val').innerText = Math.max(0, Math.floor(player.hp));
-                const s = document.getElementById('dmg-screen'); s.style.opacity=1; setTimeout(()=>s.style.opacity=0, 150);
-                if(player.hp<=0 && !player.dead && !player.dying) {
-                    player.dying = true; setTimeout(() => { player.dead = true; endGame(false); }, 2000);
-                }
-            }
-        }
-    };
-
-    // [수정] Fire 함수 훅: 데미지, 반동, 샷건 탄환 수, 무한 탄약
-    window.fire = function(w) {
-        // 기존 데미지 저장
-        const originalDmg = w.dmg;
-        // 배율 적용
-        const dmgMult = parseFloat(dmgInput.value) || 1;
-        w.dmg = originalDmg * dmgMult;
-
-        // 원래 로직 실행
-        camera.updateMatrixWorld();
-        let startPos = new THREE.Vector3();
-        gunMuzzleMarker.getWorldPosition(startPos);
-        const camPos = camera.position.clone();
-        const distToMuzzle = camPos.distanceTo(startPos);
-        const dirToMuzzle = startPos.clone().sub(camPos).normalize();
-        const checkRay = new THREE.Raycaster(camPos, dirToMuzzle, 0, distToMuzzle);
-        const obstructions = checkRay.intersectObjects(walls);
-        if(obstructions.length > 0) {
-            fx(obstructions[0].point, 0xaaaaaa);
-            w.dmg = originalDmg; // 복원 후 종료
-            return;
-        }
-
-        // [수정] 무한 탄약 체크: 발사 시 탄약 소모를 무시
-        if (!infAmmoCheckbox.checked) {
-            w.ammo--; // 무한 탄약이 아닐 때만 탄약 감소
-        }
-        // 무한 탄약이면, UI만 업데이트 (ammo는 그대로)
-        updateAmmo();
-
-        // [수정] 반동 적용: No Recoil 토글 체크
-        if (!noRecoilCheckbox.checked) {
-            player.rot.x += w.recoil;
-        }
-        if(w.isAirstrike) {
-            callAirstrike();
-            w.dmg = originalDmg; // 복원
-            return;
-        }
-        // [수정] 반동 적용: No Recoil 토글 체크
-        if (!noRecoilCheckbox.checked) {
-            recoilOffset = 0.15;
-        }
-        let fireDir = new THREE.Vector3();
-        if(input.aim) {
-            fireDir = camera.getWorldDirection(new THREE.Vector3());
+    } else if(val === "dlalsgh1215") { // New Code 1
+        if(isCodeUsed_dlalsgh1215) {
+            alert("이미 사용한 코드입니다.");
         } else {
-            const targetPoint = camera.position.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(50));
-            fireDir = targetPoint.sub(startPos).normalize();
+            coins += 30000;
+            isCodeUsed_dlalsgh1215 = true;
+            updateCoinDisplay();
+            saveGame();
+            showMsg("🎁 30000코인 획득!");
         }
-        if(w.isGL) {
-            fireDir.y += 0.05;
-            spawnGrenade(startPos, fireDir, true, w);
+    } else if(val === "538889") { // New Code 2
+        if(isCodeUsed_538889) {
+            alert("이미 사용한 코드입니다.");
+        } else {
+            inventory.adminwater++;
+            isCodeUsed_538889 = true;
+            updateInventoryUI();
+            saveGame();
+            showMsg("⚡ 관리자 물 1개 획득!");
         }
-        else if(w.isHoming) {
-            spawnMissile(startPos, fireDir, true, w);
+    } else if(val === "2437") { // Radioactive Event
+        if(!isCodeUsed_2437) {
+            inventory.radioactivewater += 3;
+            isCodeUsed_2437 = true;
+            changeRealm("radioactive");
+            saveGame();
+            showMsg("☢️ 방사능 오염 경보! (물 3개 획득)");
+        } else {
+            changeRealm("radioactive");
+            showMsg("☢️ 방사능 지역으로 이동");
         }
-        else {
-            // [수정] 샷건 탄환 수: UI 값 가져오기
-            const pellets = curWep === 3 ? (parseInt(shotgunPelletsInput.value) || 10) : (w.pellets || 1);
-            for(let i=0; i<pellets; i++) {
-                const spread = input.aim ? 0.001 : w.spread;
-                const dev = new THREE.Vector3((Math.random()-0.5)*spread, (Math.random()-0.5)*spread, (Math.random()-0.5)*spread);
-                const shotDir = fireDir.clone().add(dev).normalize();
-                const ray = new THREE.Raycaster(startPos, shotDir);
-                const hits = ray.intersectObjects([...walls, enemy.mesh], true);
-                let end = startPos.clone().add(shotDir.multiplyScalar(200));
-                if(hits.length>0) {
-                    end = hits[0].point;
-                    const o = hits[0].object;
-                    // [수정] 첫 번째 살아있는 적만 타겟팅 (간소화)
-                    if(firstAliveEnemy && firstAliveEnemy.mesh && (o===firstAliveEnemy.mesh || o.parent===firstAliveEnemy.mesh) && !firstAliveEnemy.dying) {
-                        firstAliveEnemy.hp -= w.dmg; // 여기서 w.dmg는 이미 배수 적용됨
-                        spawnDamageText(end, w.dmg, false); // 여기서 w.dmg는 이미 배수 적용됨
-                        fx(end, 0xff0000);
-                        if(firstAliveEnemy.hp<=0 && !firstAliveEnemy.dead) {
-                            firstAliveEnemy.dying = true;
-                            setTimeout(()=>{
-                                firstAliveEnemy.dead = true;
-                                scene.remove(firstAliveEnemy.mesh);
-                                // [수정] 모든 적이 죽었는지 확인하여 승리 여부 결정
-                                const allDead = window.allEnemies.every(e => e.dead);
-                                if (allDead) {
-                                    endGame(true);
-                                }
-                            }, 2000);
-                        }
-                    } else fx(end, 0xffff00);
-                }
-                line(startPos, end, 0xffaa00);
-            }
-        }
+    } else if(val === "444") { // Admin Mode ON
+        isAdminMode = true;
+        coins = 999999999; // 무한 코인 적용
+        growSpeed = 50; // 성장 속도 증가
+        saveGame();
+        refreshUI();
+        document.getElementById("adminTag").style.display = "inline-block";
+        showMsg("👑 관리자 모드 활성화! (무한 코인)");
+    } else if(val === "4444") { // Admin Mode OFF
+        isAdminMode = false;
+        coins = 0; // 코인 초기화
+        // 모드 해제 시 현재 렐름에 맞는 속도로 재설정
+        if(currentRealm === "radioactive") growSpeed = 3;
+        else growSpeed = 1;
 
-        // 복원
-        w.dmg = originalDmg;
-    };
+        updateCoinDisplay(); 
+        saveGame();
+        refreshUI();
+        document.getElementById("adminTag").style.display = "none";
+        showMsg("👑 관리자 모드 해제 (코인 초기화)");
+    } else {
+        alert("유효하지 않은 코드");
+    }
+    document.getElementById("codeInput").value = "";
+  }
 
-    // [수정] spawnEnemy 함수를 새 enemy 객체와 offset으로 확장
-    window.spawnEnemy = function(enemyObj, offset) {
-        const g = new THREE.Group();
-        const mat = new THREE.MeshStandardMaterial({color:0xff3333, roughness: 0.8});
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,1.8), mat);
-        body.castShadow=true; body.receiveShadow=true;
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.4), mat);
-        head.position.y=1.2; head.castShadow=true;
-        let enemyWepIdx = 0;
-        const validStarts = [0, 2, 3];
-        enemyWepIdx = validStarts[Math.floor(Math.random() * validStarts.length)];
-        const enemyGunMesh = genGun(enemyWepIdx);
-        enemyGunMesh.position.set(0.3, 0.2, 0.4);
-        enemyGunMesh.scale.set(0.8,0.8,0.8);
-        g.add(body, head, enemyGunMesh);
-        // [수정] 스폰 위치에 offset 적용
-        const spawnZ = -250 + (Math.random() - 0.5) * 50;
-        g.position.set((Math.random()-0.5)*20, 2, spawnZ).add(offset || new THREE.Vector3());
-        enemyObj.mesh = g;
-        enemyObj.wIdx = enemyWepIdx;
-        enemyObj.ammo = WEAPONS[enemyWepIdx].max;
-        pickRandomDest(enemyObj);
-        scene.add(g);
-    };
+  function changeRealm(realm) {
+    currentRealm = realm;
+    document.body.classList.remove("hell-map", "water-map", "radio-map");
+    
+    // 성장 속도 보너스 초기화 (관리자모드 아니면 1 또는 렐름 특화)
+    if(!isAdminMode) {
+        if(realm === "radioactive") growSpeed = 3;
+        else growSpeed = 1;
+    }
 
-    // [수정] pickRandomDest 함수를 확장
-    window.pickRandomDest = function(enemyObj) {
-        enemyObj.targetPos.set((Math.random()-0.5)*300, 2, (Math.random()-0.5)*300);
-    };
+    let realmText = "🏡 일반 농장";
 
-    // [수정] updateEnemy 함수를 확장 (전역 enemy 변수 대신 allEnemies 사용)
-    window.updateEnemy = function(dt, time) {
-        if (!window.allEnemies) return; // 적 목록이 없으면 종료
-        window.allEnemies.forEach(e => {
-            if(e.dead || !e.mesh) return;
-            if(e.dying) {
-                e.mesh.rotation.x = THREE.MathUtils.lerp(e.mesh.rotation.x, -Math.PI/2, dt * 3);
-                e.mesh.position.y = THREE.MathUtils.lerp(e.mesh.position.y, 0.5, dt * 3);
-                return;
-            }
-            e.vel.y -= 30 * dt;
-            const nx = e.mesh.position.x + e.vel.x * dt;
-            if(!checkWall(new THREE.Vector3(nx, 2, e.mesh.position.z))) e.mesh.position.x = nx;
-            const nz = e.mesh.position.z + e.vel.z * dt;
-            if(!checkWall(new THREE.Vector3(e.mesh.position.x, 2, nz))) e.mesh.position.z = nz;
-            e.mesh.position.y += e.vel.y*dt;
-            if(e.mesh.position.y<2) { e.mesh.position.y=2; e.vel.y=0; }
-            const dist = e.mesh.position.distanceTo(player.pos);
-            const dir = player.pos.clone().sub(e.mesh.position).normalize();
-            const ray = new THREE.Raycaster(e.mesh.position.clone().add(new THREE.Vector3(0,1.5,0)), dir);
-            const hits = ray.intersectObjects(walls);
-            const canSee = (hits.length===0 || hits[0].distance > dist) && !player.dying;
-            if(time > e.swapEnd) {
-                e.swapEnd = time + 2500;
-                let choices = [];
-                if(dist < 20) choices = [1, 1, 2, 2, 3, 3, 0];
-                else if(dist < 50) choices = [0, 0, 0, 2, 2, 1];
-                else choices = [0, 0, 0, 0, 2];
-                const nextW = choices[Math.floor(Math.random() * choices.length)];
-                if(e.wIdx !== nextW) {
-                    e.wIdx = nextW;
-                    // 기존 무기 제거
-                    const oldGunMesh = e.mesh.children.find(child => child !== e.mesh.children[0] && child !== e.mesh.children[1]); // body, head 제외
-                    if (oldGunMesh) e.mesh.remove(oldGunMesh);
-                    // 새 무기 생성 및 추가
-                    const newEnemyGunMesh = genGun(e.wIdx);
-                    newEnemyGunMesh.position.set(0.3, 0.2, 0.4);
-                    newEnemyGunMesh.scale.set(0.8,0.8,0.8);
-                    e.mesh.add(newEnemyGunMesh);
-                    // [수정] 무한 탄약 적용: 적도 무한 탄약
-                    e.ammo = WEAPONS[e.wIdx].max;
-                }
-            }
-            if(canSee) {
-                e.state = 'COMBAT';
-                e.mesh.lookAt(player.pos.x, e.mesh.position.y, player.pos.z);
-                let moveDir = new THREE.Vector3();
-                if(dist > 35) moveDir = dir;
-                else if(dist < 8) moveDir = dir.clone().negate();
-                const side = new THREE.Vector3(0,1,0).cross(dir).normalize();
-                const strafe = Math.sin(time/400);
-                moveDir.add(side.multiplyScalar(strafe * 0.8)).normalize();
-                e.vel.x = moveDir.x * 12; e.vel.z = moveDir.z * 12;
-                const w = WEAPONS[e.wIdx];
-                // [수정] 무한 탄약 적용: 적도 무한 탄약
-                if(e.ammo > 0 || infAmmoCheckbox.checked) {
-                    if(time > e.nextShot) {
-                        e.nextShot = time + (60000/w.rate);
-                        // [수정] 무한 탄약 적용: 적도 무한 탄약
-                        if (!infAmmoCheckbox.checked) {
-                            e.ammo--;
-                        }
-                        // 적 공격 함수 호출 시, 공격하는 적 객체를 넘김
-                        enemyFireForSpecificEnemy(w, dist, e);
-                    }
-                } else {
-                    if(time > e.reloadEnd) { if(e.reloadEnd === 0) e.reloadEnd = time + 2000; }
-                    else if(time > e.reloadEnd - 50) { e.ammo = w.max; e.reloadEnd = 0; }
-                }
-            } else {
-                e.state = 'SEARCH';
-                if(e.mesh.position.distanceTo(e.targetPos) < 2) pickRandomDest(e);
-                const moveDir = e.targetPos.clone().sub(e.mesh.position).normalize();
-                e.mesh.lookAt(e.targetPos.x, e.mesh.position.y, e.targetPos.z);
-                const frontRay = new THREE.Raycaster(e.mesh.position, moveDir, 0, 3);
-                if(frontRay.intersectObjects(walls).length > 0) {
-                    if(Math.random()>0.5 && e.mesh.position.y<2.1) e.vel.y = 10;
-                    else pickRandomDest(e);
-                }
-                e.vel.x = moveDir.x * 8; e.vel.z = moveDir.z * 8;
-            }
+    if(realm === "hell") {
+        document.body.classList.add("hell-map");
+        realmText = "🔥 지옥 차원";
+    } else if(realm === "water") {
+        document.body.classList.add("water-map");
+        realmText = "🌊 심해 차원";
+    } else if(realm === "radioactive") {
+        document.body.classList.add("radio-map");
+        realmText = "☢️ 방사능 이벤트 지역";
+    }
+
+    document.getElementById("realmDisplay").innerHTML = `현재: ${realmText} <span id='adminTag' style='display:${isAdminMode?'inline-block':'none'}'>ADMIN</span>`;
+    
+    generateNewQuest(); 
+    selectedSeed = null; selectedItem = null;
+    refreshUI();
+  }
+
+  // --- 저장 기능 ---
+  function saveGame() {
+    const tileData = [];
+    document.querySelectorAll(".tile").forEach(t => {
+        tileData.push({
+            plant: t.dataset.plant || "",
+            time: t.dataset.time || 0,
+            touches: t.dataset.touches || 0
         });
-    };
+    });
 
-    // [수정] 적 공격 함수를 확장 (특정 적 객체에 대해 공격)
-    window.enemyFireForSpecificEnemy = function(w, dist, enemyObj) {
-        if(player.dying) return;
-        if(w.isGL) {
-            const dir = player.pos.clone().sub(enemyObj.mesh.position).normalize();
-            let inaccuracy = 0.05 + (dist < 30 ? 0.2 : 0);
-            dir.x += (Math.random() - 0.5) * inaccuracy;
-            dir.y += 0.1;
-            dir.z += (Math.random() - 0.5) * inaccuracy;
-            spawnGrenade(enemyObj.mesh.position.clone().add(new THREE.Vector3(0,1.5,0)), dir.normalize(), false, w);
+    const saveData = {
+        coins, pets, inventory, currentRealm, currentDiff, currentQuest, tileData,
+        isCodeUsed_130622, isCodeUsed_dlalsgh1215, isCodeUsed_538889, isCodeUsed_2437,
+        isAdminMode, growSpeed
+    };
+    localStorage.setItem("farmGameSave_Ult_Final", JSON.stringify(saveData));
+    
+    const ind = document.getElementById("saveIndicator");
+    ind.style.display = "flex";
+    setTimeout(() => ind.style.display="none", 1000);
+  }
+
+  function loadGame() {
+    const data = localStorage.getItem("farmGameSave_Ult_Final");
+    if(data) {
+        try {
+            const parsed = JSON.parse(data);
+            
+            // 데이터 무결성 검사 (Infinity/NaN 방지)
+            coins = Number(parsed.coins) || 0;
+            if(parsed.pets) {
+                for(let k in pets) {
+                    pets[k] = Number(parsed.pets[k]) || 0;
+                }
+            }
+            
+            // 인벤토리 병합 로직 (신규 아이템 누락 방지)
+            if(parsed.inventory) {
+                inventory = parsed.inventory;
+                // 누락된 키 채워넣기 & NaN 방지
+                for(let key in allPlants) {
+                    if(typeof inventory[key] === 'undefined' || isNaN(inventory[key])) inventory[key] = 0;
+                }
+                if(typeof inventory.radioactivewater === 'undefined' || isNaN(inventory.radioactivewater)) inventory.radioactivewater = 0;
+                if(typeof inventory.radioEgg === 'undefined' || isNaN(inventory.radioEgg)) inventory.radioEgg = 0;
+            }
+
+            currentRealm = parsed.currentRealm || "normal";
+            currentDiff = parsed.currentDiff || "normal";
+            currentQuest = parsed.currentQuest || null;
+            
+            // 코드 사용 상태 및 관리자 모드 로드
+            isCodeUsed_130622 = parsed.isCodeUsed_130622 || false;
+            isCodeUsed_dlalsgh1215 = parsed.isCodeUsed_dlalsgh1215 || false;
+            isCodeUsed_538889 = parsed.isCodeUsed_538889 || false;
+            isCodeUsed_2437 = parsed.isCodeUsed_2437 || false;
+            
+            isAdminMode = parsed.isAdminMode || false;
+            
+            // 성장 속도 안전 장치 (0이거나 NaN이면 1로 복구)
+            growSpeed = Number(parsed.growSpeed) || 1;
+            if(growSpeed <= 0) growSpeed = 1;
+            
+            changeRealm(currentRealm);
+            
+            if(parsed.tileData) {
+                const tiles = document.querySelectorAll(".tile");
+                parsed.tileData.forEach((d, i) => {
+                    if(tiles[i] && d.plant && allPlants[d.plant]) { // 식물 데이터가 유효한지 확인
+                        tiles[i].dataset.plant = d.plant;
+                        // 시간 데이터가 유효하지 않으면 강제로 현재 시간으로 설정하여 즉시 완료 처리
+                        tiles[i].dataset.time = (d.time && !isNaN(d.time) && d.time !== "Infinity") ? d.time : Date.now();
+                        
+                        if(d.touches) tiles[i].dataset.touches = d.touches;
+                        
+                        const initialIcon = (d.plant==='dragonfruit'?'🔥':(d.plant==='helltree'?'🔥':(d.plant==='clam'||d.plant==='seaweed'?'💧':'🌱')));
+                        tiles[i].innerHTML = `<div class="plant">${initialIcon}</div><div class="timer">...</div>`;
+                    }
+                });
+            }
+        } catch(e) {
+            console.error("세이브 파일 로드 중 오류 발생:", e);
+            alert("세이브 파일이 손상되어 초기화되었습니다.");
+            resetGame();
+        }
+    }
+  }
+
+  function resetGame() {
+      if(confirm("정말 모든 데이터를 삭제하고 초기화하시겠습니까?")) {
+          localStorage.removeItem("farmGameSave_Ult_Final");
+          location.reload();
+      }
+  }
+
+  setInterval(saveGame, 10000);
+
+  // ========================
+  // 4. UI 렌더링
+  // ========================
+  function refreshUI() {
+    renderSeeds(); renderShop(); renderAnimalFarm(); updateInventoryUI(); updateCoinDisplay();
+    
+    const radioItem = document.querySelector('.item[data-item="radioactivewater"]');
+    if(inventory.radioactivewater > 0 || currentRealm === 'radioactive') {
+        radioItem.style.display = "block";
+    } else {
+        radioItem.style.display = "none";
+    }
+
+    document.getElementById("adminTag").style.display = isAdminMode ? "inline-block" : "none";
+  }
+
+  function renderSeeds() {
+    const seedContainer = document.getElementById("seeds");
+    seedContainer.innerHTML = "";
+    
+    for(let key in allPlants){
+        if(allPlants[key].realm === currentRealm){
+            if(key === 'dragonfruit' && !isAdminMode) continue;
+            const div = document.createElement("div");
+            div.className = "seed";
+            div.dataset.type = key;
+            div.textContent = allPlants[key].name;
+            div.onclick = () => {
+                if(selectedSeed === key) selectedSeed = null;
+                else { selectedSeed = key; selectedItem = null; }
+                updateSelectionUI();
+            };
+            seedContainer.appendChild(div);
+        }
+    }
+    updateSelectionUI();
+  }
+
+  function renderShop() {
+    const shopSeedList = document.getElementById("shopSeedList");
+    shopSeedList.innerHTML = "";
+    
+    for(let key in allPlants){
+        const p = allPlants[key];
+        if(p.realm === currentRealm){
+            if(key === 'dragonfruit' && !isAdminMode) continue;
+            shopSeedList.innerHTML += `<div class="shop-item"><span>${p.name} (${p.cost}코인)</span><button class="btn-flat btn-buy buySeedBtn" data-seed="${key}">구매</button></div>`;
+        }
+    }
+    
+    if(currentRealm === "normal") {
+        shopSeedList.innerHTML += `<div class="shop-item" style="background:#fff3e0;"><span>🥚 **육지 알** (100)</span><button class="btn-flat btn-buy buyEggBtn" data-type="egg">구매</button></div>`;
+    } else if(currentRealm === "water") {
+        shopSeedList.innerHTML += `<div class="shop-item" style="background:#e1f5fe;"><span>🔵 **바다 알** (500)</span><button class="btn-flat btn-sea buyEggBtn" data-type="seaEgg">구매</button></div>`;
+    } else if(currentRealm === "hell") {
+        shopSeedList.innerHTML += `<div class="shop-item" style="background:#fbe9e7;"><span>🔥 **지옥 알** (800)</span><button class="btn-flat btn-hell buyEggBtn" data-type="hellEgg">구매</button></div>`;
+        shopSeedList.innerHTML += `<div class="shop-item" style="background:#ffebee;"><span>✨ **전설 알** (1500)</span><button class="btn-flat btn-legend buyEggBtn" data-type="legendEgg">구매</button></div>`;
+    } else if(currentRealm === "radioactive") {
+        shopSeedList.innerHTML += `<div class="shop-item" style="background:#1b5e20;"><span>☢️ **방사능 알** (3000)</span><button class="btn-flat btn-radio buyEggBtn" data-type="radioEgg">구매</button></div>`;
+    }
+
+    const shopItemList = document.getElementById("shopItemList");
+    shopItemList.innerHTML = "";
+    for(let key in itemInfo){
+        const item = itemInfo[key];
+        if(key === 'adminwater' && !isAdminMode) continue;
+        if(key === 'radioactivewater' && currentRealm !== 'radioactive') continue;
+
+        shopItemList.innerHTML += `<div class="shop-item"><span>${item.name} (${item.cost}코인)</span><button class="btn-flat btn-buy buyItemBtn" data-item="${key}">구매</button></div>`;
+    }
+  }
+
+  function renderAnimalFarm() {
+    const container = document.getElementById("animalFarm");
+    let realmName = '동물 농장';
+    if(currentRealm === 'hell') realmName = '지옥 둥지';
+    if(currentRealm === 'water') realmName = '아쿠아리움';
+    if(currentRealm === 'radioactive') realmName = '돌연변이 보호구역';
+
+    container.innerHTML = `<h2 class="area-title">🐾 ${realmName}</h2>`;
+    
+    if(currentRealm === "normal") {
+        container.innerHTML += `
+        <div class="pet-section"><div class="pet-stats">
+            <div class="pet-card">🐶성장+5%<div class="pet-count">${pets.dog}</div></div>
+            <div class="pet-card">🐱+1000원<div class="pet-count">${pets.cat}</div></div>
+            <div class="pet-card">🐸급성장<div class="pet-count">${pets.frog}</div></div>
+        </div><button class="egg-btn btn-normal buyEggBtn" data-type="egg">🥚 육지 알 (100)</button></div>`;
+    } else if(currentRealm === "water") {
+        container.innerHTML += `
+        <div class="pet-section" style="background:#002147; border:1px solid #0288d1;">
+          <div class="pet-stats">
+            <div class="pet-card">🦭판매+5%<div class="pet-count">${pets.seal}</div></div>
+            <div class="pet-card">🦀템발견<div class="pet-count">${pets.crab}</div></div>
+            <div class="pet-card">🦈2배<div class="pet-count">${pets.shark}</div></div>
+          </div><button class="egg-btn btn-sea buyEggBtn" data-type="seaEgg">🔵 바다 알 (500)</button></div>`;
+    } else if(currentRealm === "hell") {
+        container.innerHTML += `
+        <div class="pet-section" style="background:#260e04; border:1px solid #ff5722;">
+          <div class="pet-stats">
+            <div class="pet-card">😈판매+10%<div class="pet-count">${pets.imp}</div></div>
+            <div class="pet-card">🐕‍🦺성장1.5배<div class="pet-count">${pets.cerberus}</div></div>
+            <div class="pet-card">👺2배<div class="pet-count">${pets.devil}</div></div>
+          </div><button class="egg-btn btn-hell buyEggBtn" data-type="hellEgg">🔥 지옥 알 (800)</button>
+        </div>
+        <div class="pet-section" style="background:#37474f; border:1px solid #d32f2f;">
+          <div class="pet-stats">
+            <div class="pet-card" style="background:#546e7a; color:white;">🦅성장2배<div class="pet-count">${pets.phoenix}</div></div>
+            <div class="pet-card" style="background:#546e7a; color:white;">🐍판매3배<div class="pet-count">${pets.hydra}</div></div>
+          </div><button class="egg-btn btn-legend buyEggBtn" data-type="legendEgg">✨ 전설 알 (1500)</button>
+        </div>`;
+    } else if(currentRealm === "radioactive") {
+        container.innerHTML += `
+        <div class="pet-section" style="background:#000; border:1px solid #76ff03;">
+          <div class="pet-stats">
+            <div class="pet-card">🦠코인생성<div class="pet-count">${pets.slime}</div></div>
+            <div class="pet-card">🐟성장20%<div class="pet-count">${pets.mutantfish}</div></div>
+            <div class="pet-card">🕷️판매50%<div class="pet-count">${pets.spider}</div></div>
+          </div><button class="egg-btn btn-radio buyEggBtn" data-type="radioEgg">☢️ 방사능 알 (3000)</button></div>`;
+    }
+
+    if(isAdminMode) {
+        container.innerHTML += `<div class="pet-section" style="background:#263238; border:2px solid #fff; margin-top:15px;"><div class="pet-stats"><div class="pet-card" style="background:#333; color:white;">🐲GOD<div class="pet-count">${pets.dragon}</div></div></div><button class="egg-btn btn-admin buyEggBtn" data-type="adminEgg">🐲 드래곤 알 (0)</button></div>`;
+    }
+    container.querySelectorAll(".buyEggBtn").forEach(btn => btn.onclick = () => buyEgg(btn.dataset.type));
+  }
+  
+  function updateInventoryUI() {
+    const list = document.getElementById("inventoryListContainer");
+    list.innerHTML = "";
+    // 알
+    list.innerHTML += `<div class="inv-item"><div>🥚 육지 알: ${inventory.egg}</div><div class="hatch-btn-group"><button class="btn-egg-land hatchBtn" data-type="egg" data-count="1">1</button><button class="btn-egg-land hatchBtn" data-type="egg" data-count="10">10</button></div></div>`;
+    list.innerHTML += `<div class="inv-item" style="background:#e1f5fe;"><div>🔵 바다 알: ${inventory.seaEgg}</div><div class="hatch-btn-group"><button class="btn-egg-sea hatchBtn" data-type="seaEgg" data-count="1">1</button><button class="btn-egg-sea hatchBtn" data-type="seaEgg" data-count="10">10</button></div></div>`;
+    list.innerHTML += `<div class="inv-item" style="background:#fbe9e7;"><div>🔥 지옥 알: ${inventory.hellEgg}</div><div class="hatch-btn-group"><button class="btn-egg-hell hatchBtn" data-type="hellEgg" data-count="1">1</button><button class="btn-egg-hell hatchBtn" data-type="hellEgg" data-count="10">10</button></div></div>`;
+    list.innerHTML += `<div class="inv-item" style="background:#ffebee;"><div>✨ 전설 알: ${inventory.legendEgg}</div><div class="hatch-btn-group"><button class="btn-egg-legend hatchBtn" data-type="legendEgg" data-count="1">1</button><button class="btn-egg-legend hatchBtn" data-type="legendEgg" data-count="10">10</button></div></div>`;
+    list.innerHTML += `<div class="inv-item" style="background:#1b5e20; color:#76ff03;"><div>☢️ 방사능 알: ${inventory.radioEgg}</div><div class="hatch-btn-group"><button class="btn-egg-radio hatchBtn" data-type="radioEgg" data-count="1">1</button><button class="btn-egg-radio hatchBtn" data-type="radioEgg" data-count="10">10</button></div></div>`;
+
+    if(inventory.adminEgg > 0) list.innerHTML += `<div class="inv-item" style="background:#333; color:white;"><div>🐲 드래곤 알: ${inventory.adminEgg}</div><div class="hatch-btn-group"><button class="btn-egg-admin hatchBtn" data-type="adminEgg" data-count="1">1</button><button class="btn-egg-admin hatchBtn" data-type="adminEgg" data-count="10">10</button></div></div>`;
+    if(inventory.pearl > 0) list.innerHTML += `<div class="inv-item" style="background:#fce4ec;"><div>🔮 진주: ${inventory.pearl}</div><button class="btn-flat" style="background:#e91e63; color:white;" onclick="sellPearl()">판매(10만)</button></div>`;
+    
+    // 아이템
+    list.innerHTML += `<hr><div class="inv-item">💧 물: ${inventory.water}</div><div class="inv-item">✨ 황금물: ${inventory.goldwater}</div><div class="inv-item">💎 다이아물: ${inventory.diamondwater}</div><div class="inv-item">💚 에메랄드물: ${inventory.emeraldwater}</div>`;
+    if(inventory.radioactivewater > 0) list.innerHTML += `<div class="inv-item" style="color:#76ff03; background:#000; font-weight:bold;">☢️ 방사능물: ${inventory.radioactivewater}</div>`;
+    if(inventory.adminwater > 0) list.innerHTML += `<div class="inv-item" style="color:#ff9800; font-weight:bold;">⚡ 관리자물: ${inventory.adminwater}</div>`;
+    
+    // 씨앗
+    let seedHtml = "<hr>";
+    for(let key in allPlants) {
+        if(inventory[key] > 0 || (allPlants[key].realm === currentRealm && (key !== 'dragonfruit' || isAdminMode))) {
+            seedHtml += `<div class="inv-item">${allPlants[key].name}: ${inventory[key]}</div>`;
+        }
+    }
+    list.innerHTML += seedHtml;
+
+    list.querySelectorAll(".hatchBtn").forEach(btn => btn.onclick = () => hatchEggs(btn.dataset.type, Number(btn.dataset.count)));
+  }
+
+  window.sellPearl = function() {
+      if(inventory.pearl > 0) { inventory.pearl--; coins += 100000; updateCoinDisplay(); updateInventoryUI(); showMsg("🔮 진주 판매!"); }
+  };
+
+  function updateSelectionUI(){
+    document.querySelectorAll(".seed").forEach(el => el.classList.toggle("selected", el.dataset.type === selectedSeed));
+    document.querySelectorAll(".item").forEach(el => el.classList.toggle("selected", el.dataset.item === selectedItem));
+  }
+
+  // ========================
+  // 5. 무한 퀘스트 시스템
+  // ========================
+  function generateNewQuest() {
+      // 현재 렐름에서 가능한 작물 목록
+      const possiblePlants = Object.keys(allPlants).filter(k => allPlants[k].realm === currentRealm && k !== 'dragonfruit');
+      
+      if(possiblePlants.length === 0) return;
+
+      const randomPlant = possiblePlants[Math.floor(Math.random() * possiblePlants.length)];
+      const randomCount = Math.floor(Math.random() * 5) + 3; // 3~7개 랜덤
+      
+      const plantData = allPlants[randomPlant];
+      const reward = Math.floor(plantData.sell * randomCount * 1.5); // 보상은 판매가의 1.5배
+
+      currentQuest = {
+          target: randomPlant,
+          targetName: plantData.name,
+          count: randomCount,
+          current: 0,
+          reward: reward
+      };
+      saveGame();
+      renderQuestList();
+  }
+
+  function checkQuest(harvestedType) {
+      if(!currentQuest) {
+          generateNewQuest();
+          return;
+      }
+      
+      // 렐름이 바뀌어서 퀘스트 수행이 불가능한 경우 방지
+      if(allPlants[currentQuest.target].realm !== currentRealm) {
+          generateNewQuest();
+          return;
+      }
+
+      if(harvestedType === currentQuest.target) {
+          currentQuest.current++;
+          if(currentQuest.current >= currentQuest.count) {
+              coins += currentQuest.reward;
+              showMsg(`📜 퀘스트 완료! +${currentQuest.reward}코인`);
+              updateCoinDisplay();
+              generateNewQuest(); // 즉시 새로운 퀘스트 생성
+          } else {
+              renderQuestList(); // 진행도 업데이트
+          }
+      }
+  }
+
+  function renderQuestList() {
+      const container = document.getElementById("questList");
+      container.innerHTML = "";
+      
+      if(!currentQuest) {
+          generateNewQuest(); // 퀘스트가 없으면 생성
+          return;
+      }
+
+      let borderColor = '#4caf50';
+      if(currentRealm === 'hell') borderColor = '#ff5722';
+      else if(currentRealm === 'water') borderColor = '#0288d1';
+      else if(currentRealm === 'radioactive') borderColor = '#76ff03';
+
+      container.innerHTML = `
+      <div class="quest-item" style="border:2px solid ${borderColor};">
+         <div>
+            <div class="quest-desc">${currentQuest.targetName} ${currentQuest.count}개 수확</div>
+            <div class="quest-progress">보상: ${currentQuest.reward}코인</div>
+         </div>
+         <div style="color:blue; font-weight:bold;">
+            (${currentQuest.current}/${currentQuest.count})
+         </div>
+      </div>
+      <div style="font-size:12px; color:#666; margin-top:5px; text-align:center;">
+        완료 시 자동으로 새 퀘스트가 생성됩니다.
+      </div>
+      <button class="btn-flat" style="margin-top:5px; width:100%; font-size:11px;" onclick="location.reload()">퀘스트가 이상하면 새로고침</button>
+      `;
+  }
+
+  document.getElementById("questBtn").onclick = () => {
+      renderQuestList();
+      document.getElementById("questWindow").classList.remove("hidden");
+  }
+
+  // ========================
+  // 6. 구매 / 타일 / 수확
+  // ========================
+  document.querySelectorAll(".item").forEach(btn => btn.onclick = () => {
+      const i = btn.dataset.item;
+      if(selectedItem === i) selectedItem = null; else { selectedItem = i; selectedSeed = null; }
+      updateSelectionUI();
+  });
+
+  document.getElementById("shopWindow").addEventListener("click", (e) => {
+    if(e.target.classList.contains("buyItemBtn")){
+      const k = e.target.dataset.item;
+      if(coins >= itemInfo[k].cost){ coins -= itemInfo[k].cost; inventory[k]++; updateCoinDisplay(); updateInventoryUI(); showMsg("구매 성공"); } 
+      else showMsg("코인 부족");
+    }
+    if(e.target.classList.contains("buySeedBtn")){
+      const k = e.target.dataset.seed;
+      if(coins >= allPlants[k].cost){ coins -= allPlants[k].cost; inventory[k]++; updateCoinDisplay(); updateInventoryUI(); showMsg("구매 성공"); }
+      else showMsg("코인 부족");
+    }
+    if(e.target.classList.contains("buyEggBtn")) buyEgg(e.target.dataset.type);
+  });
+
+  function buyEgg(type) {
+    let c = (type==='egg'?100:(type==='seaEgg'?500:(type==='hellEgg'?800:(type==='legendEgg'?1500:(type==='radioEgg'?3000:0)))));
+    if(coins < c) { showMsg("코인 부족"); return; }
+    coins -= c; inventory[type]++; updateCoinDisplay(); updateInventoryUI(); showMsg("알 구매!");
+  }
+
+  function hatchEggs(type, count) {
+    if(inventory[type] < count) { showMsg("알 부족"); return; }
+    inventory[type] -= count;
+    let res = {};
+    for(let i=0; i<count; i++) {
+        const r = Math.random();
+        let k = "";
+        if(type==='egg') k = (r<0.8?'dog':(r<0.95?'cat':'frog'));
+        else if(type==='seaEgg') k = (r<0.5?'seal':(r<0.8?'crab':'shark'));
+        else if(type==='hellEgg') k = (r<0.5?'imp':(r<0.8?'cerberus':'devil'));
+        else if(type==='legendEgg') k = (r<0.5?'phoenix':'hydra');
+        else if(type==='radioEgg') k = (r<0.5?'slime':(r<0.8?'mutantfish':'spider'));
+        else k = 'dragon';
+        pets[k]++; res[k] = (res[k]||0)+1;
+    }
+    updateInventoryUI(); if(document.getElementById("animalFarm")) renderAnimalFarm();
+    
+    // 결과창
+    const win = document.getElementById("hatchWindow");
+    win.classList.remove("hidden");
+    document.getElementById("hatchIcon").classList.add("egg-hatch-animation");
+    document.getElementById("hatchName").textContent = "부화중...";
+    setTimeout(() => {
+        let txt = ""; 
+        for(let k in res) txt += `${petInfo[k].icon}x${res[k]} `;
+        document.getElementById("hatchName").textContent = "결과!";
+        document.getElementById("hatchSummary").textContent = txt;
+        document.getElementById("hatchIcon").classList.remove("egg-hatch-animation");
+    }, 500);
+  }
+
+  // 전체 수확 기능 - (심기 오류 방지를 위해 선택 잠시 해제)
+  document.getElementById("harvestAllBtn").onclick = () => {
+      // 실수로 심는 것을 방지하기 위해 선택된 도구 잠시 해제
+      const tempSeed = selectedSeed;
+      const tempItem = selectedItem;
+      selectedSeed = null; 
+      selectedItem = null;
+      updateSelectionUI();
+
+      let harvestedCount = 0;
+      document.querySelectorAll(".tile").forEach(tile => {
+          if(tile.dataset.plant && Number(tile.dataset.time) <= Date.now()) {
+              if(tile.dataset.plant !== 'moneytree') {
+                  onTileClick(tile); 
+                  harvestedCount++;
+              }
+          }
+      });
+      
+      // 원래 선택 상태 복구 (선택적, 여기서는 UX를 위해 복구 안함)
+      if(harvestedCount > 0) showMsg(`🚜 ${harvestedCount}개 수확 완료!`);
+      else showMsg("수확할 작물이 없습니다.");
+  };
+
+  function onTileClick(tile){
+    const plantType = tile.dataset.plant;
+
+    // 아이템 사용
+    if(selectedItem && plantType){
+      if(inventory[selectedItem] <= 0){ showMsg("아이템 부족"); return; }
+      inventory[selectedItem]--; updateInventoryUI();
+      let endTime = Number(tile.dataset.time);
+      endTime -= itemInfo[selectedItem].reduce;
+      if(endTime < Date.now()) endTime = Date.now();
+      tile.dataset.time = endTime;
+      showFloatText(tile, "시간 단축! ⏳");
+      return;
+    }
+
+    // 수확
+    if(plantType){
+      if(Date.now() >= Number(tile.dataset.time)){
+        
+        // 돈나무 로직
+        if(plantType === 'moneytree'){
+            let touches = Number(tile.dataset.touches || 0);
+            const gain = Math.floor(Math.random() * 9001) + 1000;
+            coins += gain; updateCoinDisplay();
+            showFloatText(tile, `+${gain}`);
+            checkQuest('moneytree'); 
+            touches++; tile.dataset.touches = touches;
+            if(touches >= 3) clearTile(tile);
+            else { tile.style.transform = "scale(0.9)"; setTimeout(()=>tile.style.transform="scale(1)", 100); }
             return;
         }
-        const spread = w.spread * 1.5;
-        const dir = player.pos.clone().sub(enemyObj.mesh.position).normalize();
-        dir.x += (Math.random()-0.5)*spread; dir.y += (Math.random()-0.5)*spread; dir.z += (Math.random()-0.5)*spread;
-        const start = enemyObj.mesh.position.clone().add(new THREE.Vector3(0,1.5,0));
-        let end = start.clone().add(dir.normalize().multiplyScalar(100));
-        const ray = new THREE.Raycaster(start, dir.normalize());
-        const hits = ray.intersectObjects(walls);
-        if(hits.length>0) end = hits[0].point;
-        line(start, end, 0xff5500);
-        const distP = start.distanceTo(player.pos);
-        const distW = hits.length>0 ? hits[0].distance : 9999;
-        if(distP < distW) {
-            const lineRay = new THREE.Line3(start, end);
-            const closest = new THREE.Vector3();
-            const center = player.pos.clone().add(new THREE.Vector3(0,1.2,0));
-            lineRay.closestPointToPoint(center, true, closest);
-            if(closest.distanceTo(center) < 0.9) {
-                player.hp -= w.dmg;
-                document.getElementById('hp-val').innerText = Math.max(0, Math.floor(player.hp));
-                const s = document.getElementById('dmg-screen'); s.style.opacity=1; setTimeout(()=>s.style.opacity=0, 150);
-                if(player.hp<=0 && !player.dead && !player.dying) {
-                    player.dying = true; setTimeout(() => { player.dead = true; endGame(false); }, 2000);
-                }
+
+        // 판매가 계산
+        let sellPrice = allPlants[plantType].sell;
+        
+        // 펫 보너스 적용
+        if(pets.seal > 0) sellPrice *= (1 + pets.seal * 0.05); // 물개
+        if(pets.imp > 0) sellPrice *= (1 + pets.imp * 0.1); // 임프
+        if(pets.spider > 0) sellPrice *= (1 + pets.spider * 0.5); // 거대 거미 (50% 증가)
+        if(pets.hydra > 0) sellPrice *= (1 + pets.hydra * 2); 
+        if(pets.dragon > 0) sellPrice *= (1 + pets.dragon * 4); 
+
+        let isCrit = false;
+        // 크리티컬 확률 (상어+악마)
+        let critChance = (pets.shark * 0.2) + (pets.devil * 0.3);
+        if(Math.random() < critChance) { sellPrice *= 2; isCrit = true; }
+
+        sellPrice = Math.floor(sellPrice);
+        coins += sellPrice; 
+        updateCoinDisplay();
+        
+        // 퀘스트 체크
+        checkQuest(plantType);
+
+        let txt = `+${sellPrice}`;
+        if(isCrit) txt = `✨ ${txt}`;
+        showFloatText(tile, txt, isCrit ? "#ff1744" : "#ffeb3b");
+        
+        // 꽃게 아이템 발견
+        if(pets.crab > 0 && Math.random() < 0.1) { 
+            inventory.water++; updateInventoryUI(); showMsg("🦀 꽃게가 물뿌리개를 찾음!"); 
+        }
+        
+        // 조개/황금조개 진주 발견
+        if((plantType === 'clam' || plantType === 'goldenclam') && Math.random() < (plantType==='goldenclam'?0.05:0.01)) {
+             inventory.pearl++; updateInventoryUI(); showMsg("✨ 진주 발견!");
+             showFloatText(tile, "🔮 진주!", "#e91e63");
+        }
+        
+        // 불가사리 별가루
+        if(plantType === 'starfish' && Math.random() < 0.2) {
+            coins += 5000; updateCoinDisplay(); showMsg("⭐ 별가루 획득! (+5000)");
+            showFloatText(tile, "+5000", "#ffab00");
+        }
+
+        clearTile(tile);
+      } else {
+        showMsg("자라는 중...");
+      }
+      return;
+    }
+
+    // 심기
+    if(selectedSeed){
+      if(!allPlants[selectedSeed]) { return; } // 없는 작물 심기 방지
+
+      if(inventory[selectedSeed] > 0){
+        inventory[selectedSeed]--; updateInventoryUI();
+        
+        // 성장 속도 계산 (Safety Check 포함)
+        let speedMult = 1 + (pets.dog * 0.05) + (pets.cerberus * 0.5) + (pets.mutantfish * 0.2) + (pets.phoenix * 1.0) + (pets.dragon * 1.0);
+        if(isNaN(speedMult) || speedMult < 1) speedMult = 1; // 무한 버그 방지 코드
+
+        // 방사능 맵 추가 보너스 (관리자모드 아니면 적용)
+        if(currentRealm === 'radioactive' && !isAdminMode) speedMult *= 3;
+        
+        // growSpeed가 0이면 무한대 시간이 되므로 방어 코드
+        let safeGrowSpeed = (growSpeed > 0) ? growSpeed : 1;
+
+        const baseTime = allPlants[selectedSeed].grow / safeGrowSpeed;
+        
+        // 시간 계산 (무한 버그 원천 차단)
+        const finalDuration = baseTime / speedMult;
+        if(!isFinite(finalDuration)) {
+            tile.dataset.time = Date.now() + 1000; // 오류 시 1초 뒤 완료
+        } else {
+            tile.dataset.time = Date.now() + finalDuration;
+        }
+
+        tile.dataset.plant = selectedSeed;
+        if(selectedSeed === 'moneytree') tile.dataset.touches = 0;
+
+        const initialIcon = (selectedSeed==='dragonfruit'?'🔥':(selectedSeed==='helltree'?'🔥':(selectedSeed==='clam'?'💧':'🌱')));
+        tile.innerHTML = `<div class="plant">${initialIcon}</div><div class="timer">...</div>`;
+      } else {
+        showMsg("씨앗 부족");
+      }
+    }
+  }
+
+  function clearTile(tile){
+    tile.innerHTML = "";
+    tile.dataset.plant = "";
+    tile.removeAttribute("data-time"); tile.removeAttribute("data-touches");
+  }
+
+  // 타이머 루프
+  setInterval(() => {
+    document.querySelectorAll(".tile").forEach(tile => {
+      const type = tile.dataset.plant;
+      if(!type) return;
+      
+      const targetTime = Number(tile.dataset.time);
+      
+      // NaN 체크 및 자동 복구 (무한 버그 시각적 수정)
+      if(isNaN(targetTime)) {
+          tile.dataset.time = Date.now(); // 즉시 완료 처리
+          return;
+      }
+
+      const timeLeft = targetTime - Date.now();
+      const plantDiv = tile.querySelector(".plant");
+      const timerDiv = tile.querySelector(".timer");
+
+      // 단계별 아이콘 표시 (안전하게 처리)
+      if(plantDiv && allPlants[type]){
+        if(timeLeft <= 0) plantDiv.textContent = allPlants[type].stages[2];
+        else if(timeLeft < (allPlants[type].grow/growSpeed)/2) plantDiv.textContent = allPlants[type].stages[1];
+        else plantDiv.textContent = allPlants[type].stages[0];
+      }
+
+      if(timerDiv){
+        if(timeLeft <= 0){
+           if(type === 'moneytree') timerDiv.textContent = `터치: ${3 - (Number(tile.dataset.touches)||0)}`;
+           else timerDiv.textContent = "수확!";
+           timerDiv.style.background = (type === 'moneytree' ? "#9c27b0" : "#4caf50");
+        } else {
+           const s = Math.ceil(timeLeft / 1000);
+           timerDiv.textContent = s > 60 ? `${Math.ceil(s/60)}분` : `${s}초`;
+           timerDiv.style.background = "rgba(0,0,0,0.6)";
+        }
+      }
+    });
+  }, 200);
+
+  // 펫 효과 루프 (고양이, 슬라임)
+  setInterval(() => { 
+    if(pets.cat > 0) { coins += pets.cat*1000; updateCoinDisplay(); } 
+    if(pets.slime > 0) { coins += pets.slime*2000; updateCoinDisplay(); } // 슬라임 코인 생성
+  }, 10000);
+  
+  // 개구리
+  setInterval(() => {
+      if(pets.frog > 0) {
+          const growing = Array.from(document.querySelectorAll(".tile")).filter(t => t.dataset.plant && Number(t.dataset.time) > Date.now());
+          if(growing.length > 0) {
+              const t = growing[Math.floor(Math.random()*growing.length)];
+              t.dataset.time = Date.now(); showFloatText(t, "🐸 점프!", "#4caf50");
+          }
+      }
+  }, 60000);
+
+  // 드래곤
+  setInterval(() => {
+    if(pets.dragon > 0){
+        const growing = Array.from(document.querySelectorAll(".tile")).filter(t => t.dataset.plant && Number(t.dataset.time) > Date.now());
+        if(growing.length > 0){
+            growing.sort(() => Math.random()-0.5);
+            let cnt = 0;
+            for(let t of growing){
+                if(cnt >= pets.dragon*3) break;
+                t.dataset.time = Date.now(); showFloatText(t, "🔥 포효!", "#d32f2f"); cnt++;
             }
         }
-    };
+    }
+  }, 10000);
 
-    // [수정] animate 함수를 확장 (updateEnemy 호출 수정)
-    window.animate = function() {
-        requestAnimationFrame(animate);
-        if(!isGameActive) return;
-        const dt = Math.min(clock.getDelta(), 0.1);
-        const time = performance.now();
-        updateEffects(dt);
-        updatePlayer(dt, time/1000);
-        updateEnemy(dt, time);
-        renderer.render(scene, camera);
-    };
+  // UI 핸들러
+  document.getElementById("settingBtn").onclick = () => document.getElementById("settingWindow").classList.remove("hidden");
+  
+  // 닫기 버튼들
+  document.getElementById("closeSetting").onclick = () => document.getElementById("settingWindow").classList.add("hidden");
+  document.getElementById("closeShop").onclick = () => document.getElementById("shopWindow").classList.add("hidden");
+  document.getElementById("closeInv").onclick = () => document.getElementById("inventoryWindow").classList.add("hidden");
+  document.getElementById("closeQuest").onclick = () => document.getElementById("questWindow").classList.add("hidden");
+  document.getElementById("closeHatchBtn").onclick = () => document.getElementById("hatchWindow").classList.add("hidden");
 
-    console.log("수정된 치트 UI가 성공적으로 생성되었습니다! (속도, 점프, 연사, 데미지, 체력, 탄약, 무적, 반동 제거, 강제 연사, 샷건 탄환 배수, 적 수 포함, 무한 총알 개선)");
-})();
+  // 데이터 초기화 버튼
+  document.getElementById("resetGameBtn").onclick = resetGame;
+  
+  // 난이도 버튼
+  document.querySelectorAll(".btn-diff-select").forEach(btn => btn.onclick = (e) => {
+      currentDiff = btn.dataset.diff;
+      if(currentDiff === "easy") coins = 500;
+      else if(currentDiff === "normal") coins = 300;
+      else if(currentDiff === "hard") coins = 150;
+      
+      updateCoinDisplay();
+      document.getElementById("settingWindow").classList.add("hidden");
+      refreshUI();
+      showMsg("난이도가 변경되었습니다.");
+  });
+
+  document.getElementById("shopBtn").onclick = () => document.getElementById("shopWindow").classList.remove("hidden");
+  document.getElementById("inventoryBtn").onclick = () => { updateInventoryUI(); document.getElementById("inventoryWindow").classList.remove("hidden"); };
+
+  function showMsg(txt){
+    const msg = document.getElementById("msg"); msg.textContent = txt;
+    msg.style.opacity = 1; setTimeout(()=>msg.style.opacity=0, 2000);
+  }
+  function updateCoinDisplay(){ document.getElementById("coins").textContent = `💰 ${coins.toLocaleString()}`; }
+  function showFloatText(el, txt, col){
+    const f = document.createElement("div"); f.className="float-text"; f.textContent=txt;
+    if(col) f.style.color=col; el.appendChild(f); setTimeout(()=>f.remove(), 800);
+  }
+});
+</script>
+</body>
+</html>
